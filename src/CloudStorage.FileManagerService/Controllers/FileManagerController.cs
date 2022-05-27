@@ -9,7 +9,7 @@ namespace CloudStorage.FileManagerService.Controllers
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/filemanager")]
-    public class FileManagerController
+    public class FileManagerController : ControllerBase
     {
 
     }
