@@ -1,0 +1,9 @@
+{
+  "urls": "http://*:5000;"
+  // "https": {
+  //     "port": 4443,
+  //     "cert": "/root/tomcat.pfx",
+  //     "pwd": "changeit",
+  //     "httpPort": 4444
+  // }
+}
