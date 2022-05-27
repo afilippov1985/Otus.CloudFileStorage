@@ -1,4 +1,5 @@
 ﻿using CloudStorage.WebApi.Shared.Infrastructure;
+using CloudStorage.WebAPi.Shared.Helpers;
 using GeoAnalytics.WebApi.Shared.Helpers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -67,6 +68,9 @@ namespace CloudStorage.WebApi.Shared
                     item.Item3.Description += $" (Версия {productVersion})";
                     options.SwaggerDoc(item.Item1, item.Item3);
                 }
+
+                options.OperationFilter<RemoveVersionFromParameter>();
+                options.DocumentFilter<ReplaceVersionWithExactValueInPath>();
 
                 options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 
