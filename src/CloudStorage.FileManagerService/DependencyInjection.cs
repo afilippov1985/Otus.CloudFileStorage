@@ -16,6 +16,9 @@
             IConfiguration conf,
             IWebHostEnvironment env)
         {
+            var fileManagerServiceOptions = conf.GetSection("FileManagerServiceOptions");
+            services.Configure<FileManagerServiceOptions>(fileManagerServiceOptions);
+
             return services;
         }
     }

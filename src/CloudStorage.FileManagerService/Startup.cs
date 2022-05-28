@@ -15,7 +15,7 @@ namespace CloudStorage.FileManagerService
             {
                 Title = "CloudStorage File Manager Service HTTP API",
                 Version = "v1.0",
-                Description = "Сервис для управления файлами облачного хранилища"
+                Description = "Сервис для управления файлами облачного хранилища. Пример работы <a href = '../example.html'>Демо</a>"
             })
         };
 

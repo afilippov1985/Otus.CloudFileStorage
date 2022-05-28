@@ -69,8 +69,8 @@ namespace CloudStorage.WebApi.Shared
                     options.SwaggerDoc(item.Item1, item.Item3);
                 }
 
-                options.OperationFilter<RemoveVersionFromParameter>();
-                options.DocumentFilter<ReplaceVersionWithExactValueInPath>();
+                //options.OperationFilter<RemoveVersionFromParameter>();
+                //options.DocumentFilter<ReplaceVersionWithExactValueInPath>();
 
                 options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 
@@ -136,7 +136,7 @@ namespace CloudStorage.WebApi.Shared
 
             ConfigureCore(app);
 
-            /*
+            
             app.UseSwagger()
                 .UseSwaggerUI(options =>
                 {
@@ -145,7 +145,7 @@ namespace CloudStorage.WebApi.Shared
                         options.SwaggerEndpoint($"swagger/{item.Item1}/swagger.json",
                             item.Item2);
                 });
-            */
+            
 
             app.UseStaticFiles();
 
