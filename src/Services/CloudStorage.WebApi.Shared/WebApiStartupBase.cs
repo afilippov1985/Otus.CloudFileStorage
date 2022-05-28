@@ -136,6 +136,7 @@ namespace CloudStorage.WebApi.Shared
 
             ConfigureCore(app);
 
+            /*
             app.UseSwagger()
                 .UseSwaggerUI(options =>
                 {
@@ -144,6 +145,9 @@ namespace CloudStorage.WebApi.Shared
                         options.SwaggerEndpoint($"swagger/{item.Item1}/swagger.json",
                             item.Item2);
                 });
+            */
+
+            app.UseStaticFiles();
 
             app.UseRouting();
             app.UseMiddleware(typeof(ErrorLoggingMiddleware));
