@@ -1,6 +1,7 @@
 ﻿using CloudStorage.FileManagerService.Dto;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.IO;
 
 namespace CloudStorage.FileManagerService.Controllers
 {
@@ -25,21 +26,17 @@ namespace CloudStorage.FileManagerService.Controllers
         {
             return Ok(new InitializeResponse()
             {
-                Result = new()
-                {
-                    Status = InitializeStatus.Success,
-                    Message = ""
-                },
+                Result = new(Status.Success, ""),
                 Config = new()
                 {
                     Acl = false,
                     HiddenFiles = true,
                     Disks = new()
                     {
-                        {"public",
+                        { "public",
                             new()
                             {
-                                {"driver", "local" }
+                                { "driver", "local" }
                             }
                         }
                     },
@@ -50,6 +47,33 @@ namespace CloudStorage.FileManagerService.Controllers
                     RightPath = "",
                     WindowsConfig = (int)WindowsConfig.OneManager
                 }
+            });
+        }
+
+        [HttpGet]
+        [ActionName("content")]
+        public IActionResult StorageContent([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
+        {
+            string diskPath = @"D:\Temp\1"; // FIX move to app settings
+            // TODO validate path
+            string contentPath = path != null ? Path.Combine(diskPath, path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+
+            var dirs = new List<DirectoryAttributes>();
+            foreach (var i in Directory.EnumerateDirectories(contentPath))
+            {
+                dirs.Add(new DirectoryAttributes(diskPath, new DirectoryInfo(i)));
+            }
+
+            var files = new List<Dto.FileAttributes>();
+            foreach (var i in Directory.EnumerateFiles(contentPath))
+            {
+                files.Add(new Dto.FileAttributes(diskPath, new FileInfo(i)));
+            }
+
+            return Ok(new ContentResponse() {
+                Result = new(Status.Success, ""),
+                Directories = dirs,
+                Files = files,
             });
         }
     }
