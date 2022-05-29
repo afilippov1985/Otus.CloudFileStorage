@@ -88,5 +88,40 @@ namespace CloudStorage.FileManagerService.Controllers
                 Files = files,
             });
         }
+
+        /// <summary>
+        /// запрос на содание файла
+        /// </summary>
+        /// <param name="fileRequest"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [ActionName("create-file")]
+        public IActionResult CreateFile([FromBody] CreateFileRequest fileRequest)
+        {
+            string diskPath = _options.UserFilesPath;
+
+            string contentPath = fileRequest.Path != null ? Path.Combine(diskPath, fileRequest.Path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+
+            if (!string.IsNullOrWhiteSpace(fileRequest?.Name))
+            {
+                FileInfo fileInfo = new FileInfo(string.Concat(contentPath, DirectoryAttributes.DirectorySeparatorChar, fileRequest.Name));
+                try
+                {
+                    if (fileInfo.Exists)
+                        return Conflict();
+                    FileStream fs = fileInfo.Create();
+                    return Ok(new CreateFileResponce()
+                    {
+                        Result = new Result(Status.Success, "fileCreated"),
+                        File = new Dto.FileAttributes(diskPath, fileInfo)
+                    });
+                }
+                catch (Exception E)
+                {
+                    return Problem("error create file");
+                }
+            }
+            else return NotFound();
+        }
     }
 }
