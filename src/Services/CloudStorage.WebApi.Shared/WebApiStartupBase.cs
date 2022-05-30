@@ -140,9 +140,9 @@ namespace CloudStorage.WebApi.Shared
             app.UseSwagger()
                 .UseSwaggerUI(options =>
                 {
-                    options.RoutePrefix = string.Empty;
+                    options.RoutePrefix = "swagger";
                     foreach (var item in ApiInfos)
-                        options.SwaggerEndpoint($"swagger/{item.Item1}/swagger.json",
+                        options.SwaggerEndpoint($"{item.Item1}/swagger.json",
                             item.Item2);
                 });
             
