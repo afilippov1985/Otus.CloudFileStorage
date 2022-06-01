@@ -88,5 +88,40 @@ namespace CloudStorage.FileManagerService.Controllers
                 Files = files,
             });
         }
+
+        [HttpPost]
+        [ActionName("create-directory")]
+        public IActionResult CreateDirectory([FromBody]NewDirectory dir)
+        {
+            try
+            {   
+                string diskPath = _options.UserFilesPath;
+                string dirPath = dir.Path != null ? Path.Combine(diskPath, dir.Path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+
+                var dirInfo = new DirectoryInfo(dirPath);
+                dirInfo.CreateSubdirectory(dir.Name);
+
+                var newDirectory = new DirectoryAttributes(diskPath, new DirectoryInfo(Path.Combine(dirPath, dir.Name)));
+
+                var tree = new List<Tree>();
+                foreach (var i in Directory.EnumerateDirectories(dirPath))
+                {
+                    tree.Add(new Tree(diskPath, new DirectoryInfo(i)));
+                }
+                
+                return Ok(new TreeResponse() {
+                    Result = new(Status.Success, $"Directory \"{dir.Name}\" created"),
+                    Directory = newDirectory,
+                    Tree = tree
+                });
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(new TreeResponse() {
+                    Result = new(Status.Warning, ex.Message)
+                });
+            }
+            
+        }
     }
 }
