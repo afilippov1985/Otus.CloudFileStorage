@@ -3,7 +3,7 @@
     /// <summary>
     /// ответ на запрос создания документа 
     /// </summary>
-    public class CreateFileResponce
+    public class CreateFileResponse
     {
         /// <summary>
         /// результат

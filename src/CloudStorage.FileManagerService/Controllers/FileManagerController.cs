@@ -102,26 +102,27 @@ namespace CloudStorage.FileManagerService.Controllers
 
             string contentPath = fileRequest.Path != null ? Path.Combine(diskPath, fileRequest.Path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
 
-            if (!string.IsNullOrWhiteSpace(fileRequest?.Name))
+            if (string.IsNullOrWhiteSpace(fileRequest?.Name))
             {
-                FileInfo fileInfo = new FileInfo(string.Concat(contentPath, DirectoryAttributes.DirectorySeparatorChar, fileRequest.Name));
-                try
-                {
-                    if (fileInfo.Exists)
-                        return Conflict();
-                    FileStream fs = fileInfo.Create();
-                    return Ok(new CreateFileResponce()
-                    {
-                        Result = new Result(Status.Success, "fileCreated"),
-                        File = new Dto.FileAttributes(diskPath, fileInfo)
-                    });
-                }
-                catch (Exception E)
-                {
-                    return Problem("error create file");
-                }
+                return UnprocessableEntity();
             }
-            else return NotFound();
+            
+            FileInfo fileInfo = new FileInfo(Path.Combine(contentPath, fileRequest.Name));
+            if (fileInfo.Exists)
+            {
+                return Ok(new CreateFileResponse()
+                {
+                    Result = new Result(Status.Warning, "fileExist"),
+                });
+            }
+
+            FileStream fs = fileInfo.Create();
+            fs.Close();
+            return Ok(new CreateFileResponse()
+            {
+                Result = new Result(Status.Success, "fileCreated"),
+                File = new Dto.FileAttributes(diskPath, fileInfo)
+            });
         }
     }
 }
