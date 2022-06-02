@@ -91,10 +91,10 @@ namespace CloudStorage.FileManagerService.Controllers
 
         [HttpPost]
         [ActionName("create-directory")]
-        public IActionResult CreateDirectory([FromBody]NewDirectory dir)
+        public IActionResult CreateDirectory([FromBody] NewDirectory dir)
         {
             try
-            {   
+            {
                 string diskPath = _options.UserFilesPath;
                 string dirPath = dir.Path != null ? Path.Combine(diskPath, dir.Path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
 
@@ -108,20 +108,57 @@ namespace CloudStorage.FileManagerService.Controllers
                 {
                     tree.Add(new Tree(diskPath, new DirectoryInfo(i)));
                 }
-                
-                return Ok(new TreeResponse() {
+
+                return Ok(new TreeResponse()
+                {
                     Result = new(Status.Success, $"Directory \"{dir.Name}\" created"),
                     Directory = newDirectory,
                     Tree = tree
                 });
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                return BadRequest(new TreeResponse() {
+                return BadRequest(new TreeResponse()
+                {
                     Result = new(Status.Warning, ex.Message)
                 });
             }
+        }
             
+        /// <summary>
+        /// запрос на содание файла
+        /// </summary>
+        /// <param name="fileRequest"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [ActionName("create-file")]
+        public IActionResult CreateFile([FromBody] CreateFileRequest fileRequest)
+        {
+            string diskPath = _options.UserFilesPath;
+
+            string contentPath = fileRequest.Path != null ? Path.Combine(diskPath, fileRequest.Path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+
+            if (string.IsNullOrWhiteSpace(fileRequest?.Name))
+            {
+                return UnprocessableEntity();
+            }
+            
+            FileInfo fileInfo = new FileInfo(Path.Combine(contentPath, fileRequest.Name));
+            if (fileInfo.Exists)
+            {
+                return Ok(new CreateFileResponse()
+                {
+                    Result = new Result(Status.Warning, "fileExist"),
+                });
+            }
+
+            FileStream fs = fileInfo.Create();
+            fs.Close();
+            return Ok(new CreateFileResponse()
+            {
+                Result = new Result(Status.Success, "fileCreated"),
+                File = new Dto.FileAttributes(diskPath, fileInfo)
+            });
         }
     }
 }
