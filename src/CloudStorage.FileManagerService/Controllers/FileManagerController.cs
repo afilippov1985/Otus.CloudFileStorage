@@ -1,4 +1,4 @@
-﻿using CloudStorage.FileManagerService.Dto;
+using CloudStorage.FileManagerService.Dto;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.IO;
@@ -160,5 +160,34 @@ namespace CloudStorage.FileManagerService.Controllers
                 File = new Dto.FileAttributes(diskPath, fileInfo)
             });
         }
+
+                [HttpPost]
+        [ActionName("upload")]
+        public IActionResult StorageUpload([FromQuery(Name = "disk")] string disk, 
+                                           [FromQuery(Name = "path")] string path,
+                                           [FromQuery(Name = "overwrite")] int overwrite, 
+                                           [FromQuery(Name = "files[]")] List<IFormFile> files)
+        {
+            string diskPath = _options.UserFilesPath;
+            string contentPath = path != null ? Path.Combine(diskPath, path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+
+            foreach (IFormFile uploadedFile in files)
+            {
+                string filePath = Path.Combine(contentPath, Path.GetFileName(uploadedFile.FileName));
+                if (overwrite == 1 || !System.IO.File.Exists(filePath))
+                {
+                    using (FileStream stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        uploadedFile.CopyTo(stream);
+                    }
+                }
+            }
+
+            return Ok(new UploadResponse()
+            {
+                Result = new(Status.Success, "uploaded"),
+            });
+        }
+
     }
 }
