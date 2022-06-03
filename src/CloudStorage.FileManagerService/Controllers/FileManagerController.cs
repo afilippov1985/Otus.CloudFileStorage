@@ -12,7 +12,6 @@ namespace CloudStorage.FileManagerService.Controllers
 
     //[ApiController]
     [ApiVersion("1.0")]
-    //[Route("file-manager/[action]")]
     [Route("/file-manager/[action]")]
     public class FileManagerController : ControllerBase
     {
@@ -26,6 +25,17 @@ namespace CloudStorage.FileManagerService.Controllers
         {
             _options = options?.Value ?? throw new ArgumentNullException(nameof(FileManagerServiceOptions));
         }
+
+        private string GetDiskPath(string disk)
+        {
+            return _options.UserFilesPath;
+        }
+
+        private string GetContentPath(string diskPath, string path)
+        {
+            return path != null ? Path.Combine(diskPath, path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+        }
+
         /// <summary>
         /// Возвращает информацию об инициализации сервиса FileManagerService
         /// </summary>
@@ -66,9 +76,8 @@ namespace CloudStorage.FileManagerService.Controllers
         [ActionName("content")]
         public IActionResult StorageContent([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
         {
-            string diskPath = _options.UserFilesPath; // FIX move to app settings
-            // TODO validate path
-            string contentPath = path != null ? Path.Combine(diskPath, path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+            string diskPath = GetDiskPath(disk);
+            string contentPath = GetContentPath(diskPath, path);
 
             var dirs = new List<DirectoryAttributes>();
             foreach (var i in Directory.EnumerateDirectories(contentPath))
@@ -93,36 +102,26 @@ namespace CloudStorage.FileManagerService.Controllers
         [ActionName("create-directory")]
         public IActionResult CreateDirectory([FromBody] NewDirectory dir)
         {
-            try
+            string diskPath = GetDiskPath(dir.Disk);
+            string contentPath = GetContentPath(diskPath, dir.Path);
+
+            var dirInfo = new DirectoryInfo(contentPath);
+            dirInfo.CreateSubdirectory(dir.Name);
+
+            var newDirectory = new DirectoryAttributes(diskPath, new DirectoryInfo(Path.Combine(contentPath, dir.Name)));
+
+            var tree = new List<Tree>();
+            foreach (var i in Directory.EnumerateDirectories(contentPath))
             {
-                string diskPath = _options.UserFilesPath;
-                string dirPath = dir.Path != null ? Path.Combine(diskPath, dir.Path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
-
-                var dirInfo = new DirectoryInfo(dirPath);
-                dirInfo.CreateSubdirectory(dir.Name);
-
-                var newDirectory = new DirectoryAttributes(diskPath, new DirectoryInfo(Path.Combine(dirPath, dir.Name)));
-
-                var tree = new List<Tree>();
-                foreach (var i in Directory.EnumerateDirectories(dirPath))
-                {
-                    tree.Add(new Tree(diskPath, new DirectoryInfo(i)));
-                }
-
-                return Ok(new TreeResponse()
-                {
-                    Result = new(Status.Success, $"Directory \"{dir.Name}\" created"),
-                    Directory = newDirectory,
-                    Tree = tree
-                });
+                tree.Add(new Tree(diskPath, new DirectoryInfo(i)));
             }
-            catch (Exception ex)
+
+            return Ok(new TreeResponse()
             {
-                return BadRequest(new TreeResponse()
-                {
-                    Result = new(Status.Warning, ex.Message)
-                });
-            }
+                Result = new(Status.Success, "dirCreated"),
+                Directory = newDirectory,
+                Tree = tree
+            });
         }
             
         /// <summary>
@@ -134,9 +133,8 @@ namespace CloudStorage.FileManagerService.Controllers
         [ActionName("create-file")]
         public IActionResult CreateFile([FromBody] CreateFileRequest fileRequest)
         {
-            string diskPath = _options.UserFilesPath;
-
-            string contentPath = fileRequest.Path != null ? Path.Combine(diskPath, fileRequest.Path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+            string diskPath = GetDiskPath(fileRequest.Disk);
+            string contentPath = GetContentPath(diskPath, fileRequest.Path);
 
             if (string.IsNullOrWhiteSpace(fileRequest?.Name))
             {
@@ -161,15 +159,15 @@ namespace CloudStorage.FileManagerService.Controllers
             });
         }
 
-                [HttpPost]
+        [HttpPost]
         [ActionName("upload")]
         public IActionResult StorageUpload([FromQuery(Name = "disk")] string disk, 
                                            [FromQuery(Name = "path")] string path,
                                            [FromQuery(Name = "overwrite")] int overwrite, 
                                            [FromQuery(Name = "files[]")] List<IFormFile> files)
         {
-            string diskPath = _options.UserFilesPath;
-            string contentPath = path != null ? Path.Combine(diskPath, path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
+            string diskPath = GetDiskPath(disk);
+            string contentPath = GetContentPath(diskPath, path);
 
             foreach (IFormFile uploadedFile in files)
             {
