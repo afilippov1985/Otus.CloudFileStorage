@@ -260,5 +260,24 @@ namespace CloudStorage.FileManagerService.Controllers
             return Ok(new Result(Status.Success, "deleted"));
         }
 
+        [HttpGet]
+        [ActionName("tree")]
+        public IActionResult ReturnTree([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
+        {
+            string diskPath = GetDiskPath(disk);
+            string contentPath = GetContentPath(diskPath, path);
+
+            var tree = new List<Tree>();
+            foreach (var i in Directory.EnumerateDirectories(contentPath))
+            {
+                tree.Add(new Tree(diskPath, new DirectoryInfo(i)));
+            }
+            
+            return Ok(new ReturnTreeResponse()
+            {
+                Result = new(Status.Success, "treeReturned"),
+                Directories = tree
+            });
+        }
     }
 }
