@@ -260,6 +260,36 @@ namespace CloudStorage.FileManagerService.Controllers
             return Ok(new Result(Status.Success, "deleted"));
         }
 
+        /// <summary>
+        /// запрос на Изменение файла
+        /// </summary>
+        /// <param name="fileRequest"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [ActionName("update-file")]
+        public IActionResult UpdateFile([FromForm] UpdateFileRequest fileRequest)
+        {
+            string diskPath = GetDiskPath(fileRequest.Disk);
+            string contentPath = GetContentPath(diskPath, fileRequest.Path);
+
+            if (fileRequest == null || fileRequest.File == null)
+            {
+                return UnprocessableEntity();
+            }
+
+            FileInfo fileInfo = new FileInfo(Path.Combine(contentPath, fileRequest.File.FileName));
+            using (FileStream stream = fileInfo.Create())
+            {
+                fileRequest.File.CopyTo(stream);
+            }
+
+            return Ok(new UpdateFileResponse()
+            {
+                Result = new Result(Status.Success, "fileUpdated"),
+                File = new Dto.FileAttributes(diskPath, fileInfo)
+            });
+        }
+
         [HttpGet]
         [ActionName("tree")]
         public IActionResult ReturnTree([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
