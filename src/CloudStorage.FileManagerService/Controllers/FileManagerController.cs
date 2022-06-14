@@ -219,7 +219,9 @@ namespace CloudStorage.FileManagerService.Controllers
                 Directory.Move(Path.Combine(diskPath, request.OldName), Path.Combine(diskPath, request.NewName));
             }
 
-            return Ok(new Result(Status.Success, "renamed"));
+            return Ok(new RenameResponse() {
+                Result = new Result(Status.Success, "renamed")
+            });
         }
 
         /// <summary>
@@ -257,7 +259,9 @@ namespace CloudStorage.FileManagerService.Controllers
                 }
             }
 
-            return Ok(new Result(Status.Success, "deleted"));
+            return Ok(new DeleteResponse() {
+                Result = new Result(Status.Success, "deleted")
+            });
         }
 
         /// <summary>
