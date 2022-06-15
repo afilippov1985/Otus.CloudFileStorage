@@ -313,5 +313,41 @@ namespace CloudStorage.FileManagerService.Controllers
                 Directories = tree
             });
         }
+
+        [HttpGet]
+        [ActionName("preview")]
+        public IActionResult Preview([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
+        {
+            string diskPath = GetDiskPath(disk);
+            string contentPath = GetContentPath(diskPath, path);
+            var fileInfo = new FileInfo(contentPath);
+
+            string contentType = fileInfo.Extension.ToLower() switch {
+                ".bmp" => "image/x-ms-bmp",
+                ".gif" => "image/gif",
+                ".ico" => "image/x-icon",
+                ".jpeg" => "image/jpeg",
+                ".jpg" => "image/jpeg",
+                ".png" => "image/png",
+                ".tif" => "image/tiff",
+                ".tiff" => "image/tiff",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
+            };
+
+            return PhysicalFile(contentPath, contentType);
+        }
+
+        [HttpGet]
+        [ActionName("download")]
+        public IActionResult Download([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
+        {
+            string diskPath = GetDiskPath(disk);
+            string contentPath = GetContentPath(diskPath, path);
+            var fileInfo = new FileInfo(contentPath);
+
+            return PhysicalFile(contentPath, "application/octet-stream", fileInfo.Name);
+        }
+
     }
 }
