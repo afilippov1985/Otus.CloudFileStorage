@@ -16,6 +16,7 @@ namespace CloudStorage.FileManagerService.Controllers
     public class FileManagerController : ControllerBase
     {
         private readonly FileManagerServiceOptions _options;
+        private Dictionary<string, string> _mimeMap;
 
         /// <summary>
         /// 
@@ -24,6 +25,17 @@ namespace CloudStorage.FileManagerService.Controllers
         public FileManagerController(IOptions<FileManagerServiceOptions> options)
         {
             _options = options?.Value ?? throw new ArgumentNullException(nameof(FileManagerServiceOptions));
+            _mimeMap = new Dictionary<string, string>() {
+                { ".bmp", "image/x-ms-bmp" },
+                { ".gif", "image/gif" },
+                { ".ico", "image/x-icon" },
+                { ".jpeg", "image/jpeg" },
+                { ".jpg", "image/jpeg" },
+                { ".png", "image/png" },
+                { ".tif", "image/tiff" },
+                { ".tiff", "image/tiff" },
+                { ".webp", "image/webp" },
+            };
         }
 
         private string GetDiskPath(string disk)
@@ -322,18 +334,11 @@ namespace CloudStorage.FileManagerService.Controllers
             string contentPath = GetContentPath(diskPath, path);
             var fileInfo = new FileInfo(contentPath);
 
-            string contentType = fileInfo.Extension.ToLower() switch {
-                ".bmp" => "image/x-ms-bmp",
-                ".gif" => "image/gif",
-                ".ico" => "image/x-icon",
-                ".jpeg" => "image/jpeg",
-                ".jpg" => "image/jpeg",
-                ".png" => "image/png",
-                ".tif" => "image/tiff",
-                ".tiff" => "image/tiff",
-                ".webp" => "image/webp",
-                _ => "application/octet-stream"
-            };
+            string contentType;
+            if (!_mimeMap.TryGetValue(fileInfo.Extension.ToLower(), out contentType))
+            {
+                contentType = "application/octet-stream";
+            }
 
             return PhysicalFile(contentPath, contentType);
         }
