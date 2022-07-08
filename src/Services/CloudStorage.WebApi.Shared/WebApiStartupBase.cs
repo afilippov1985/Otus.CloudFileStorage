@@ -106,6 +106,9 @@ namespace CloudStorage.WebApi.Shared
             });
 
             services.AddHealthChecks();
+
+            services.AddDistributedMemoryCache();
+            services.AddSession();
         }
 
         /// <summary>
@@ -153,6 +156,7 @@ namespace CloudStorage.WebApi.Shared
             app.UseMiddleware(typeof(ErrorLoggingMiddleware));
             app.UseCors("CorsPolicy");
 
+            app.UseSession();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseApiVersioning();
