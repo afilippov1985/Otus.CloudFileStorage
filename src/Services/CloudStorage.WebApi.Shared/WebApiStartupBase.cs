@@ -148,8 +148,8 @@ namespace CloudStorage.WebApi.Shared
                         options.SwaggerEndpoint($"{item.Item1}/swagger.json",
                             item.Item2);
                 });
-            
 
+            app.UseDefaultFiles();
             app.UseStaticFiles();
 
             app.UseRouting();
