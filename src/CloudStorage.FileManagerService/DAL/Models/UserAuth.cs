@@ -11,7 +11,7 @@ namespace CloudStorage.FileManagerService.DAL.Models
         /// <summary>
         /// Идентификатор
         /// </summary>
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         /// <summary>
         /// Имя пользователя

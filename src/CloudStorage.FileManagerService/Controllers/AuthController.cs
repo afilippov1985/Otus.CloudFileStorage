@@ -33,7 +33,7 @@ namespace CloudStorage.FileManagerService.Controllers
                 if (user == null)
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                    return BadRequest();
+                    return Unauthorized();
                 }
 
                 var claims = new List<Claim>
@@ -76,24 +76,29 @@ namespace CloudStorage.FileManagerService.Controllers
                 Console.WriteLine($"User {user.UserName} logged in at {user.RegDate}.");
 
                 return Ok(new LoginResponse() {
-                User = user,
-            });
+                    User = user,
+                });
             }
             return BadRequest();         
         }
 
-        private UserAuth authenticateUser(string login, string password)
+        private UserAuth? authenticateUser(string login, string password)
         {
             // TODO user model
-            if ((login == "admin")&&(password=="admin"))//todo проверять по базе
-            return new UserAuth()
+            if (login == "admin" && password == "admin") // TODO проверять по базе
             {
-                Id = new Guid(),
-                UserName = login,
-                UserPassword = password,
-                RegDate = DateTime.Now
-            };
-            else return null;//todo
+                return new UserAuth()
+                {
+                    Id = 1,
+                    UserName = login,
+                    UserPassword = password,
+                    RegDate = DateTime.Now
+                };
+            }
+            else
+            {
+                return null;
+            }
         }
 
         [HttpPost]
@@ -113,7 +118,7 @@ namespace CloudStorage.FileManagerService.Controllers
         /// <summary>
         /// Идентификатор
         /// </summary>
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         /// <summary>
         /// Имя пользователя
