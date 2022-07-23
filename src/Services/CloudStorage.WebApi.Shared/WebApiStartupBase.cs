@@ -11,6 +11,8 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using System.Reflection;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 
 #nullable disable
 
@@ -109,6 +111,17 @@ namespace CloudStorage.WebApi.Shared
 
             services.AddDistributedMemoryCache();
             services.AddSession();
+
+            // аутентификация с помощью куки
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+                {
+                    options.LoginPath = new Microsoft.AspNetCore.Http.PathString("/login");
+                    options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
+                    options.SlidingExpiration = true;
+                    options.AccessDeniedPath = "/Forbidden/";
+                });
+            services.AddAuthorization();            
         }
 
         /// <summary>
@@ -168,6 +181,13 @@ namespace CloudStorage.WebApi.Shared
 
                 endpoints.MapHealthChecks("/health");
             });
+
+            var cookiePolicyOptions = new CookiePolicyOptions
+            {
+                MinimumSameSitePolicy = SameSiteMode.Strict,
+            };
+            app.UseCookiePolicy(cookiePolicyOptions);
+
         }
 
         /// <summary>
