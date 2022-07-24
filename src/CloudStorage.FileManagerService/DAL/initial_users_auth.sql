@@ -2,7 +2,7 @@
 
 create table users_auth
 (
-	id uuid not null,
+	id INTEGER not null,
 	user_name varchar(100) not null,
 	user_password varchar(100) not null,
 	reg_date timestamp not null
