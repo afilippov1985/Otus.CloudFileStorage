@@ -23,30 +23,32 @@ namespace CloudStorage.FileManagerService.Controllers
         [ActionName("login")]
         public IActionResult Login([FromBody] LoginRequest request)
         {
-            // var user = authenticateUser(request.Login, request.Password);
-            // //HttpContext.Session.SetInt32("userId", 1); // TODO user id
-
-            if (ModelState.IsValid)
+            DAL.Models.UserAuth? user = null;
+            using (var db = new ApplicationDbContext())
             {
-                var user = authenticateUser(request.Login, request.Password);
+                user = db.Users.Where(u => u.UserName == request.Login).FirstOrDefault();
+            }
 
-                if (user == null)
-                {
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                    return Unauthorized();
-                }
+            if (user == null)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return Unauthorized();
+            }
 
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(ClaimTypes.Role, "Administrator"),
-                };
+            if (new DAL.Models.PasswordHasher().VerifyHashedPassword(user, user.UserPassword, request.Password) == Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return Unauthorized();
+            }
 
-                var claimsIdentity = new ClaimsIdentity(
-                    claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var claims = new List<Claim> {
+                new Claim("Id", user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.UserName),
+            };
 
-                var authProperties = new AuthenticationProperties
-                {
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+            var authProperties = new AuthenticationProperties() {
                 //     //AllowRefresh = <bool>,
                 //     // Refreshing the authentication session should be allowed.
 
@@ -67,38 +69,18 @@ namespace CloudStorage.FileManagerService.Controllers
                 //     //RedirectUri = <string>
                 //     // The full path or absolute URI to be used as an http 
                 //     // redirect response value.
-                };
+            };
 
-                HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme, 
-                    new ClaimsPrincipal(claimsIdentity), authProperties);
+            HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity), authProperties);
 
-                Console.WriteLine($"User {user.UserName} logged in at {user.RegDate}.");
+            Console.WriteLine($"User {user.UserName} logged in at {user.RegDate}.");
 
-                return Ok(new LoginResponse() {
-                    User = user,
-                });
-            }
-            return BadRequest();         
-        }
-
-        private UserAuth? authenticateUser(string login, string password)
-        {
-            // TODO user model
-            if (login == "admin" && password == "admin") // TODO проверять по базе
+            return Ok(new LoginResponse()
             {
-                return new UserAuth()
-                {
-                    Id = 1,
-                    UserName = login,
-                    UserPassword = password,
-                    RegDate = DateTime.Now
-                };
-            }
-            else
-            {
-                return null;
-            }
+                User = user,
+            });
         }
 
         [HttpPost]
@@ -113,26 +95,4 @@ namespace CloudStorage.FileManagerService.Controllers
         }
     }
 
-    public class UserAuth //todo из ветки Феди
-    {
-        /// <summary>
-        /// Идентификатор
-        /// </summary>
-        public int Id { get; set; }
-
-        /// <summary>
-        /// Имя пользователя
-        /// </summary>
-        public string UserName { get; set; }
-        
-        /// <summary>
-        /// Пароль
-        /// </summary>
-        public string UserPassword { get; set; }
-
-        /// <summary>
-        /// Дата регистрации
-        /// </summary>
-        public DateTime RegDate { get; set; }
-    }
 }

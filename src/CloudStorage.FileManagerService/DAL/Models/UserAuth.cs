@@ -1,16 +1,20 @@
 ﻿#nullable disable
 
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace CloudStorage.FileManagerService.DAL.Models
 {
 
     /// <summary>
     /// Модель для аутентификации пользователя
     /// </summary>
+    // [Table("users_auth", Schema = "public")]
     public class UserAuth
     {
         /// <summary>
         /// Идентификатор
         /// </summary>
+
         public int Id { get; set; }
 
         /// <summary>

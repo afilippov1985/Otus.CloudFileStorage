@@ -1,15 +1,16 @@
-﻿create database users_auth_db;
+﻿CREATE DATABASE users_auth_db;
 
-create table users_auth
+CREATE SEQUENCE userid_seq START 2;
+
+CREATE TABLE users_auth
 (
-	id INTEGER not null,
-	user_name varchar(100) not null,
-	user_password varchar(100) not null,
-	reg_date timestamp not null
+	"Id" INTEGER not null DEFAULT nextval('userid_seq'),
+	"UserName" varchar(100) not null,
+	"UserPassword" varchar(100) not null,
+	"RegDate" timestamp not null,
+	PRIMARY KEY ("Id")
 );
 
-create unique index users_auth_id_uix on users_auth(id);
+CREATE UNIQUE INDEX users_auth_username_idx ON users_auth ("UserName");
 
-create unique index users_auth_pk on users_auth(id);
-
-create unique index users_auth_name_password_uix on users_auth(user_name, user_password);
+INSERT INTO users_auth ("Id", "UserName", "UserPassword", "RegDate") VALUES (1, '1', 'AadGMxakRZvcx/nqDbAgEDyfTIXZvtuSV1iiTWUJPw/bLSgcYwNFkaUXzULq6jybNw==', '2022-08-21 00:00:00');

@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EntityFramework" Version="6.4.4" />
+    <PackageReference Include="EntityFramework6.Npgsql" Version="6.4.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="6.0.8" />
+    <PackageReference Include="Npgsql" Version="6.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Services\CloudStorage.WebApi.Shared\CloudStorage.WebApi.Shared.csproj" />
   </ItemGroup>
 

@@ -7,11 +7,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{12
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "FileManagerService", "FileManagerService", "{F19CDD95-8A8F-42D5-9074-0419ECE6A484}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudStorage.WebApi.Shared", "Services\CloudStorage.WebApi.Shared\CloudStorage.WebApi.Shared.csproj", "{0A00BFC1-6EDE-4A21-9AE5-806C639D5169}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudStorage.WebApi.Shared", "Services\CloudStorage.WebApi.Shared\CloudStorage.WebApi.Shared.csproj", "{0A00BFC1-6EDE-4A21-9AE5-806C639D5169}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudStorage.Utils", "CloudStorage.Utils\CloudStorage.Utils.csproj", "{31825C1A-554C-4372-80DE-CF00AC376690}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudStorage.Utils", "CloudStorage.Utils\CloudStorage.Utils.csproj", "{31825C1A-554C-4372-80DE-CF00AC376690}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudStorage.FileManagerService", "CloudStorage.FileManagerService\CloudStorage.FileManagerService.csproj", "{732AF746-3BBE-41DB-AF4E-7F8A8B247836}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudStorage.FileManagerService", "CloudStorage.FileManagerService\CloudStorage.FileManagerService.csproj", "{732AF746-3BBE-41DB-AF4E-7F8A8B247836}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{491725AC-371B-45EA-A5E4-04036C66BBC4}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

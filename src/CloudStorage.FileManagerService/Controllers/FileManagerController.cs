@@ -40,7 +40,17 @@ namespace CloudStorage.FileManagerService.Controllers
 
         private string GetDiskPath(string disk)
         {
-            return _options.UserFilesPath;
+            var claim = HttpContext.User.FindFirst("Id");
+            if (claim == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            var dir = Path.Combine(_options.UserFilesPath, claim.Value);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            return dir;
         }
 
         private string GetContentPath(string diskPath, string path)
