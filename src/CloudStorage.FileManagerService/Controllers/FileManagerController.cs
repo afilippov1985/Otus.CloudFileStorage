@@ -70,7 +70,7 @@ namespace CloudStorage.FileManagerService.Controllers
         {
             return Ok(new InitializeResponse()
             {
-                Result = new(Status.Success, ""),
+                Result = new Result(Status.Success, ""),
                 Config = new()
                 {
                     Acl = false,
@@ -115,7 +115,7 @@ namespace CloudStorage.FileManagerService.Controllers
 
             return Ok(new ContentResponse()
             {
-                Result = new(Status.Success, ""),
+                Result = new Result(Status.Success, ""),
                 Directories = dirs,
                 Files = files,
             });
@@ -141,9 +141,9 @@ namespace CloudStorage.FileManagerService.Controllers
 
             return Ok(new TreeResponse()
             {
-                Result = new(Status.Success, "dirCreated"),
+                Result = new Result(Status.Success, "dirCreated"),
                 Directory = newDirectory,
-                Tree = tree
+                Tree = tree,
             });
         }
 
@@ -178,7 +178,7 @@ namespace CloudStorage.FileManagerService.Controllers
             return Ok(new CreateFileResponse()
             {
                 Result = new Result(Status.Success, "fileCreated"),
-                File = new Dto.FileAttributes(diskPath, fileInfo)
+                File = new Dto.FileAttributes(diskPath, fileInfo),
             });
         }
 
@@ -206,7 +206,7 @@ namespace CloudStorage.FileManagerService.Controllers
 
             return Ok(new UploadResponse()
             {
-                Result = new(Status.Success, "uploaded"),
+                Result = new Result(Status.Success, "uploaded"),
             });
         }
 
@@ -230,14 +230,24 @@ namespace CloudStorage.FileManagerService.Controllers
             if (request.Type == EntityType.File)
             {
                 if (!System.IO.File.Exists(Path.Combine(diskPath, request.OldName)))
-                    return Ok(new Result(Status.Warning, "fileNotExist"));
+                {
+                    return Ok(new RenameResponse()
+                    {
+                        Result = new Result(Status.Warning, "fileNotExist")
+                    });
+                }
 
                 System.IO.File.Move(Path.Combine(diskPath, request.OldName), Path.Combine(diskPath, request.NewName));
             }
             else
             {
                 if (!Directory.Exists(Path.Combine(diskPath, request.OldName)))
-                    return Ok(new Result(Status.Warning, "dirNotExist"));
+                {
+                    return Ok(new RenameResponse()
+                    {
+                        Result = new Result(Status.Warning, "dirNotExist")
+                    });
+                }
 
                 Directory.Move(Path.Combine(diskPath, request.OldName), Path.Combine(diskPath, request.NewName));
             }
@@ -285,7 +295,7 @@ namespace CloudStorage.FileManagerService.Controllers
 
             return Ok(new DeleteResponse()
             {
-                Result = new Result(Status.Success, "deleted")
+                Result = new Result(Status.Success, "deleted"),
             });
         }
 
@@ -315,7 +325,7 @@ namespace CloudStorage.FileManagerService.Controllers
             return Ok(new UpdateFileResponse()
             {
                 Result = new Result(Status.Success, "fileUpdated"),
-                File = new Dto.FileAttributes(diskPath, fileInfo)
+                File = new Dto.FileAttributes(diskPath, fileInfo),
             });
         }
 
@@ -334,8 +344,8 @@ namespace CloudStorage.FileManagerService.Controllers
 
             return Ok(new ReturnTreeResponse()
             {
-                Result = new(Status.Success, "treeReturned"),
-                Directories = tree
+                Result = new Result(Status.Success, "treeReturned"),
+                Directories = tree,
             });
         }
 
@@ -374,12 +384,14 @@ namespace CloudStorage.FileManagerService.Controllers
             if (true) // задание отправлено в очередь
             {
                 // TODO отправить задание в очередь
-                return Ok(new ZipResponse() {
+                return Ok(new ZipResponse()
+                {
                     Result = new Result(Status.Success, ""),
                 });
             }
 
-            return Ok(new ZipResponse() {
+            return Ok(new ZipResponse()
+            {
                 Result = new Result(Status.Warning, "zipError"),
             });
         }
@@ -391,12 +403,14 @@ namespace CloudStorage.FileManagerService.Controllers
             if (true) // задание отправлено в очередь
             {
                 // TODO отправить задание в очередь
-                return Ok(new UnzipResponse() {
+                return Ok(new UnzipResponse()
+                {
                     Result = new Result(Status.Success, ""),
                 });
             }
 
-            return Ok(new UnzipResponse() {
+            return Ok(new UnzipResponse()
+            {
                 Result = new Result(Status.Warning, "zipError"),
             });
         }
