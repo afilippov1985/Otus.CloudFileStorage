@@ -113,7 +113,8 @@ namespace CloudStorage.FileManagerService.Controllers
                 files.Add(new Dto.FileAttributes(diskPath, new FileInfo(i)));
             }
 
-            return Ok(new ContentResponse() {
+            return Ok(new ContentResponse()
+            {
                 Result = new(Status.Success, ""),
                 Directories = dirs,
                 Files = files,
@@ -241,7 +242,8 @@ namespace CloudStorage.FileManagerService.Controllers
                 Directory.Move(Path.Combine(diskPath, request.OldName), Path.Combine(diskPath, request.NewName));
             }
 
-            return Ok(new RenameResponse() {
+            return Ok(new RenameResponse()
+            {
                 Result = new Result(Status.Success, "renamed")
             });
         }
@@ -281,7 +283,8 @@ namespace CloudStorage.FileManagerService.Controllers
                 }
             }
 
-            return Ok(new DeleteResponse() {
+            return Ok(new DeleteResponse()
+            {
                 Result = new Result(Status.Success, "deleted")
             });
         }
@@ -328,7 +331,7 @@ namespace CloudStorage.FileManagerService.Controllers
             {
                 tree.Add(new Tree(diskPath, new DirectoryInfo(i)));
             }
-            
+
             return Ok(new ReturnTreeResponse()
             {
                 Result = new(Status.Success, "treeReturned"),
@@ -362,6 +365,40 @@ namespace CloudStorage.FileManagerService.Controllers
             var fileInfo = new FileInfo(contentPath);
 
             return PhysicalFile(contentPath, "application/octet-stream", fileInfo.Name);
+        }
+
+        [HttpPost]
+        [ActionName("zip")]
+        public IActionResult Zip([FromBody] ZipRequest zipRequest)
+        {
+            if (true) // задание отправлено в очередь
+            {
+                // TODO отправить задание в очередь
+                return Ok(new ZipResponse() {
+                    Result = new Result(Status.Success, ""),
+                });
+            }
+
+            return Ok(new ZipResponse() {
+                Result = new Result(Status.Warning, "zipError"),
+            });
+        }
+
+        [HttpPost]
+        [ActionName("unzip")]
+        public IActionResult Unzip([FromBody] UnzipRequest unzipRequest)
+        {
+            if (true) // задание отправлено в очередь
+            {
+                // TODO отправить задание в очередь
+                return Ok(new UnzipResponse() {
+                    Result = new Result(Status.Success, ""),
+                });
+            }
+
+            return Ok(new UnzipResponse() {
+                Result = new Result(Status.Warning, "zipError"),
+            });
         }
 
     }
