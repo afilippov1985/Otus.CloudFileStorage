@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
+﻿using FileManagerService.Data;
 using FileManagerService.Requests;
 using FileManagerService.Responses;
-using FileManagerService.Data;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -12,11 +14,13 @@ namespace FileManagerService.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
+        private readonly IAntiforgery _csrfService;
 
-        public AuthController(UserManager<User> userManager, SignInManager<User> signInManager)
+        public AuthController(UserManager<User> userManager, SignInManager<User> signInManager, IAntiforgery csrfService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _csrfService = csrfService;
         }
 
         [HttpGet]
@@ -24,6 +28,9 @@ namespace FileManagerService.Controllers
         [ActionName("remember")]
         public async Task<IActionResult> Remember()
         {
+            var tokens = _csrfService.GetAndStoreTokens(HttpContext);
+            HttpContext.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions() { HttpOnly = false });
+
             if (HttpContext.User != null && HttpContext.User.Identity.IsAuthenticated)
             {
                 return Ok(new LoginResponse() {

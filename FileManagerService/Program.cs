@@ -2,6 +2,7 @@ using FileManagerService.Data;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,9 +47,14 @@ namespace FileManagerService
                 });
             });
 
-            // Add services to the container.
-            // builder.Services.AddControllersWithViews();
-            builder.Services.AddControllers().AddJsonOptions((options) => {
+            builder.Services.AddAntiforgery((options) => {
+                options.HeaderName = "X-XSRF-TOKEN";
+                options.Cookie.HttpOnly = false;
+            });
+
+            builder.Services.AddControllersWithViews((options) => {
+                options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+            }).AddJsonOptions((options) => {
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             });
 
