@@ -71,6 +71,10 @@ namespace FileManagerService.Responses
         /// Подключенные диски
         /// </summary>
         public Dictionary<string, Dictionary<string, string>> Disks { get; set; }
+
+        public string ShareBaseUrl { get; set; }
+
+        public IList<AddShareResponse> ShareList { get; set; }
     }
 
     /// <summary>

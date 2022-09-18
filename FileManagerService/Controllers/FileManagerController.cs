@@ -6,10 +6,13 @@ using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace FileManagerService.Controllers
@@ -20,9 +23,12 @@ namespace FileManagerService.Controllers
         private readonly string _storagePath;
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly Dictionary<string, string> _mimeMap;
+        private readonly ApplicationDbContext _db;
 
-        public FileManagerController(IConfiguration configuration, IPublishEndpoint publishEndpoint)
+        public FileManagerController(IConfiguration configuration, IPublishEndpoint publishEndpoint, ApplicationDbContext db)
         {
+            _db = db;
+
             _storagePath = configuration.GetValue<string>("StoragePath");
 
             _publishEndpoint = publishEndpoint;
@@ -40,14 +46,19 @@ namespace FileManagerService.Controllers
             };
         }
 
-        private string GetDiskPath(string disk)
+        private string GetAuthenticatedUserId()
         {
             var claim = HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (claim == null)
             {
                 throw new UnauthorizedAccessException();
             }
-            var dir = Path.Combine(_storagePath, claim.Value);
+            return claim.Value;
+        }
+
+        private string GetDiskPath(string disk)
+        {
+            var dir = Path.Combine(_storagePath, GetAuthenticatedUserId());
             if (!Directory.Exists(dir))
             {
                 Directory.CreateDirectory(dir);
@@ -64,6 +75,11 @@ namespace FileManagerService.Controllers
         [ActionName("initialize")]
         public IActionResult InitializeManager()
         {
+            var shareList = _db.Shares
+                .Where(x => x.UserId == GetAuthenticatedUserId())
+                .Select(x => new AddShareResponse() { Disk = x.Disk, Path = x.Path, PublicId = x.PublicId })
+                .ToList();
+
             return Ok(new InitializeResponse()
             {
                 Result = new(Status.Success, ""),
@@ -85,7 +101,10 @@ namespace FileManagerService.Controllers
                     RightDisk = "",
                     LeftPath = "",
                     RightPath = "",
-                    WindowsConfig = (int)WindowsConfig.OneManager
+                    WindowsConfig = (int)WindowsConfig.OneManager,
+
+                    ShareBaseUrl = "http://localhost:7001/view/", // TODO URL доступа к опубликованному файлу
+                    ShareList = shareList,
                 }
             });
         }
@@ -462,6 +481,48 @@ namespace FileManagerService.Controllers
             }
         }
 
-    }
+        [HttpPost]
+        [ActionName("addShare")]
+        public async Task<IActionResult> AddShare([FromBody] AddShareRequest request)
+        {
+            string diskPath = GetDiskPath(request.Disk);
 
+            var share = new Share()
+            {
+                UserId = GetAuthenticatedUserId(),
+                Disk = request.Disk,
+                Path = request.Path,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            _db.Shares.Add(share);
+            await _db.SaveChangesAsync();
+
+            return Ok(new AddShareResponse() {
+                Disk = share.Disk,
+                Path = share.Path,
+                PublicId = share.PublicId,
+            });
+        }
+
+        [HttpPost]
+        [ActionName("removeShare")]
+        public async Task<IActionResult> RemoveShare([FromBody] RemoveShareRequest request)
+        {
+            string diskPath = GetDiskPath(request.Disk);
+
+            var share = _db.Shares.Where(x => x.PublicId == request.PublicId).FirstOrDefault();
+            if (share != null)
+            {
+                _db.Shares.Remove(share);
+                await _db.SaveChangesAsync();
+            }
+
+            return Ok(new RemoveShareResponse()
+            {
+                Disk = request.Disk,
+                Path = request.Path,
+            });
+        }
+    }
 }
