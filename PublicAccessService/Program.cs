@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using PublicAccessService.Data;
+
 namespace PublicAccessService
 {
     public class Program
@@ -5,6 +8,9 @@ namespace PublicAccessService
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("FileManager")));
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();

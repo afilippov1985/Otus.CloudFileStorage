@@ -449,6 +449,8 @@ namespace FileManagerService.Controllers
                     Files = request.Elements.Files,
                 });
 
+                System.Threading.Thread.Sleep(1000);
+
                 return Ok(new ResultResponse(Status.Success, ""));
             }
             catch
@@ -472,6 +474,8 @@ namespace FileManagerService.Controllers
                     Path = request.Path,
                     Folder = request.Folder,
                 });
+
+                System.Threading.Thread.Sleep(1000);
 
                 return Ok(new ResultResponse(Status.Success, ""));
             }
