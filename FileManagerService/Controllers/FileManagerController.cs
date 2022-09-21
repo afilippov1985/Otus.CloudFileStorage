@@ -21,6 +21,7 @@ namespace FileManagerService.Controllers
     public class FileManagerController : ControllerBase
     {
         private readonly string _storagePath;
+        private readonly string _publicAccessServiceUrl;
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly Dictionary<string, string> _mimeMap;
         private readonly ApplicationDbContext _db;
@@ -30,6 +31,7 @@ namespace FileManagerService.Controllers
             _db = db;
 
             _storagePath = configuration.GetValue<string>("StoragePath");
+            _publicAccessServiceUrl = configuration.GetValue<string>("PublicAccessServiceUrl");
 
             _publishEndpoint = publishEndpoint;
 
@@ -103,7 +105,7 @@ namespace FileManagerService.Controllers
                     RightPath = "",
                     WindowsConfig = (int)WindowsConfig.OneManager,
 
-                    ShareBaseUrl = "http://localhost:7001/view/", // TODO URL доступа к опубликованному файлу
+                    ShareBaseUrl = _publicAccessServiceUrl + "/view/",
                     ShareList = shareList,
                 }
             });
