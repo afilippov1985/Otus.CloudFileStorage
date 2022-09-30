@@ -1,4 +1,6 @@
+using ArchiveService;
 using FileManagerService.Data;
+using FileManagerService.Interfaces;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -52,11 +54,14 @@ namespace FileManagerService
                 options.Cookie.HttpOnly = false;
             });
 
+
             builder.Services.AddControllersWithViews((options) => {
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
             }).AddJsonOptions((options) => {
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             });
+
+            builder.Services.AddTransient<IFileStorage, FileSystemStorage>();
 
             var app = builder.Build();
 
