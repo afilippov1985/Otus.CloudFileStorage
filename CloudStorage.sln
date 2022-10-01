@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ArchiveService", "ArchiveSe
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{87D683E3-60B2-4956-A544-1B277D7A9945}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PublicAccessService", "PublicAccessService\PublicAccessService.csproj", "{668D28EA-255A-4BDF-B5D8-E94053037C00}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PublicAccessService", "PublicAccessService\PublicAccessService.csproj", "{668D28EA-255A-4BDF-B5D8-E94053037C00}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{3956CD00-079B-4C75-B8DC-7E4BC8FA43FB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{668D28EA-255A-4BDF-B5D8-E94053037C00}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{668D28EA-255A-4BDF-B5D8-E94053037C00}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{668D28EA-255A-4BDF-B5D8-E94053037C00}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3956CD00-079B-4C75-B8DC-7E4BC8FA43FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3956CD00-079B-4C75-B8DC-7E4BC8FA43FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3956CD00-079B-4C75-B8DC-7E4BC8FA43FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3956CD00-079B-4C75-B8DC-7E4BC8FA43FB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
