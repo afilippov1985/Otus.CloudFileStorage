@@ -31,7 +31,7 @@ namespace FileManagerService.Controllers
             var tokens = _csrfService.GetAndStoreTokens(HttpContext);
             HttpContext.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions() { HttpOnly = false });
 
-            if (HttpContext.User != null && HttpContext.User.Identity.IsAuthenticated)
+            if (HttpContext.User?.Identity.IsAuthenticated == true)
             {
                 return Ok(new LoginResponse() {
                     User = new() {

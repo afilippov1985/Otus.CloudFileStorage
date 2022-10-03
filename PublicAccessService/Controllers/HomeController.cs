@@ -20,7 +20,7 @@ namespace PublicAccessService.Controllers
             _db = db;
         }
 
-        private string GetDiskPath(string disk, string userId)
+        private string GetDiskPath(string userId)
         {
             var dir = Path.Combine(_storagePath, userId);
             if (!Directory.Exists(dir))
@@ -30,7 +30,7 @@ namespace PublicAccessService.Controllers
             return dir;
         }
 
-        private string GetContentPath(string diskPath, string? path)
+        private static string GetContentPath(string diskPath, string? path)
         {
             return path != null ? Path.Combine(diskPath, path.Replace('/', Path.DirectorySeparatorChar)) : diskPath;
         }
@@ -46,7 +46,7 @@ namespace PublicAccessService.Controllers
                 return NotFound();
             }
 
-            string diskPath = GetDiskPath(share.Disk, share.UserId);
+            string diskPath = GetDiskPath(share.UserId);
             string contentPath = GetContentPath(diskPath, share.Path);
 
             var info = new System.IO.FileInfo(contentPath);
@@ -72,7 +72,7 @@ namespace PublicAccessService.Controllers
                 return NotFound();
             }
 
-            string diskPath = GetDiskPath(share.Disk, share.UserId);
+            string diskPath = GetDiskPath(share.UserId);
             string contentPath = GetContentPath(diskPath, share.Path);
 
             var info = new System.IO.FileInfo(contentPath);

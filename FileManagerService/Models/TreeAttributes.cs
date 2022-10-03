@@ -12,7 +12,7 @@
             Props = new Property() { hasSubdirectories = IsAnySubdirectories(info.FullName) };
         }
 
-        private bool IsAnySubdirectories(string path)
+        private static bool IsAnySubdirectories(string path)
         {
             return System.IO.Directory.GetDirectories(path).Length > 0;
         }

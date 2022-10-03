@@ -32,7 +32,7 @@
         public long Timestamp { get; set; }
 
         /// <summary>
-        /// 
+        /// Видимость
         /// </summary>
         public EntityVisibility Visibility { get; set; }
 

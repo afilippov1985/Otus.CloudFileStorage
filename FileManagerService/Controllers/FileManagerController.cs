@@ -1,19 +1,8 @@
-﻿using FileManagerService.Data;
-using FileManagerService.Interfaces;
-using FileManagerService.Models;
+﻿using FileManagerService.Interfaces;
 using FileManagerService.Requests;
-using FileManagerService.Responses;
-using MassTransit;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
-using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace FileManagerService.Controllers
@@ -47,7 +36,7 @@ namespace FileManagerService.Controllers
 
         [HttpGet]
         [ActionName("content")]
-        public IActionResult StorageContent([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
+        public IActionResult StorageContent([FromQuery(Name = "path")] string path)
         {
             return Ok(_fileSystemStorage.StorageContent(path, GetAuthenticatedUserId()));
         }
@@ -62,8 +51,6 @@ namespace FileManagerService.Controllers
         /// <summary>
         /// запрос на содание файла
         /// </summary>
-        /// <param name="fileRequest"></param>
-        /// <returns></returns>
         [HttpPost]
         [ActionName("create-file")]
         public IActionResult CreateFile([FromBody] CreateFileRequest request)
@@ -120,14 +107,14 @@ namespace FileManagerService.Controllers
 
         [HttpGet]
         [ActionName("tree")]
-        public IActionResult Tree([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
+        public IActionResult Tree([FromQuery(Name = "path")] string path)
         {
-            return Ok(_fileSystemStorage.Tree(path, GetAuthenticatedUserId()));   
+            return Ok(_fileSystemStorage.Tree(path, GetAuthenticatedUserId()));
         }
 
         [HttpGet]
         [ActionName("preview")]
-        public IActionResult Preview([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
+        public IActionResult Preview([FromQuery(Name = "path")] string path)
         {
             var response = _fileSystemStorage.Preview(path, GetAuthenticatedUserId());
             return PhysicalFile(response.ContentPath, response.ContentType);
@@ -136,7 +123,7 @@ namespace FileManagerService.Controllers
         [HttpGet]
         [ResponseCache(NoStore = true)]
         [ActionName("download")]
-        public IActionResult Download([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
+        public IActionResult Download([FromQuery(Name = "path")] string path)
         {
             var response = _fileSystemStorage.Preview(path, GetAuthenticatedUserId());
             return PhysicalFile(response.ContentPath, response.ContentType, response.NameFile);

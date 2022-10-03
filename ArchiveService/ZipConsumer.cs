@@ -59,7 +59,7 @@ namespace ArchiveService
             }
         }
 
-        private void AddFile(ZipArchive zip, string realFilePath, string relativePath, string file)
+        private static void AddFile(ZipArchive zip, string realFilePath, string relativePath, string file)
         {
             if (!string.IsNullOrEmpty(relativePath) && file.StartsWith(relativePath))
             {

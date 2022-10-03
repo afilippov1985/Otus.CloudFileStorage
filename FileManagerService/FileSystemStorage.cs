@@ -486,7 +486,7 @@ namespace FileManagerService
             return dir;
         }
 
-        private string GetContentPath(string diskPath, string? path)
+        private static string GetContentPath(string diskPath, string? path)
         {
             return path != null ? Path.Combine(diskPath, path.Replace(DirectoryAttributes.DirectorySeparatorChar, Path.DirectorySeparatorChar)) : diskPath;
         }
