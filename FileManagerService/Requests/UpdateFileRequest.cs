@@ -18,6 +18,5 @@ namespace FileManagerService.Requests
         /// Новое содержимое файла
         /// </summary>
         public IFormFile File { get; set; }
-        
     }
 }

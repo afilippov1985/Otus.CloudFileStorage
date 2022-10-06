@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace FileManagerService.Responses
+﻿namespace FileManagerService.Responses
 {
     /// <summary>
     /// Результат выполнения операции
@@ -29,7 +27,6 @@ namespace FileManagerService.Responses
 
     public enum Status
     {
-
         Success,
 
         Warning,

@@ -5,7 +5,6 @@ using FileManagerService.Requests;
 using FileManagerService.Responses;
 using MassTransit;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;

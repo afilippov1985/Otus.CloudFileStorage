@@ -1,6 +1,5 @@
 ﻿using FileManagerService.Requests;
 using FileManagerService.Responses;
-using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace FileManagerService.Interfaces

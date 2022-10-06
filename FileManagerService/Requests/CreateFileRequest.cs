@@ -13,7 +13,7 @@
         public string Name { get; set; }
 
         /// <summary>
-        /// 
+        /// диск
         /// </summary>
         public string Disk { get; set; }
     }
