@@ -1,18 +1,14 @@
-﻿using FileManagerService.Data;
-using FileManagerService.Interfaces;
-using FileManagerService.Models;
-using FileManagerService.Requests;
-using FileManagerService.Responses;
-using MassTransit;
+﻿using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using Common.Interfaces;
+using Common.Results;
+using Common.Models;
+using Common.Queries;
+using Common.Data;
+using Common.Messages;
 
-namespace FileManagerService
+namespace Common
 {
     public class FileSystemStorage : IFileStorage
     {
@@ -26,8 +22,9 @@ namespace FileManagerService
         {
             _db = db;
 
-            _storagePath = configuration.GetValue<string>("StoragePath");
-            _publicAccessServiceUrl = configuration.GetValue<string>("PublicAccessServiceUrl");
+            //todo откуда считывать настройки???
+            //_storagePath = configuration.GetValue<string>("StoragePath");
+            //_publicAccessServiceUrl = configuration.GetValue<string>("PublicAccessServiceUrl");
 
             _publishEndpoint = publishEndpoint;
 
@@ -44,14 +41,14 @@ namespace FileManagerService
             };
         }
 
-        public InitializeResponse InitializeManager(string AuthenticatedUserId)
+        public InitializeResult InitializeManager(string AuthenticatedUserId)
         {
             var shareList = _db.Shares
                 .Where(x => x.UserId == AuthenticatedUserId)
-                .Select(x => new AddShareResponse() { Disk = x.Disk, Path = x.Path, PublicId = x.PublicId })
+                .Select(x => new AddShareResult() { Disk = x.Disk, Path = x.Path, PublicId = x.PublicId })
                 .ToList();
 
-            return new InitializeResponse()
+            return new InitializeResult()
             {
                 Result = new(Status.Success, ""),
                 Config = new()
@@ -80,7 +77,7 @@ namespace FileManagerService
             };
         }
 
-        public ContentResponse StorageContent(string path, string AuthenticatedUserId)
+        public ContentResult StorageContent(string path, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, path);
@@ -97,7 +94,7 @@ namespace FileManagerService
                 files.Add(new Models.FileAttributes(diskPath, new FileInfo(i)));
             }
 
-            return new ContentResponse()
+            return new ContentResult()
             {
                 Result = new(Status.Success, ""),
                 Directories = dirs,
@@ -105,7 +102,7 @@ namespace FileManagerService
             };
         }
 
-        public CreateDirectoryResponse CreateDirectory(CreateDirectoryRequest request, string AuthenticatedUserId)
+        public CreateDirectoryResult CreateDirectory(CreateDirectoryQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, request.Path);
@@ -115,7 +112,7 @@ namespace FileManagerService
 
             var newDirectory = new DirectoryAttributes(diskPath, new DirectoryInfo(Path.Combine(contentPath, request.Name)));
 
-            var response = new CreateDirectoryResponse()
+            var response = new CreateDirectoryResult()
             {
                 Result = new(Status.Success, "dirCreated"),
                 Directory = newDirectory,
@@ -129,7 +126,7 @@ namespace FileManagerService
             return response;
         }
 
-        public CreateFileResponse CreateFile(CreateFileRequest request, string AuthenticatedUserId)
+        public CreateFileResult CreateFile(CreateFileQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, request.Path);
@@ -139,10 +136,10 @@ namespace FileManagerService
                 return null;
             }
 
-            FileInfo fileInfo = new(Path.Combine(contentPath, request.Name));
+            FileInfo fileInfo = new FileInfo(Path.Combine(contentPath, request.Name));
             if (fileInfo.Exists)
             {
-                return new CreateFileResponse()
+                return new CreateFileResult()
                 {
                     Result = new(Status.Warning, "fileExist"),
                 };
@@ -150,14 +147,14 @@ namespace FileManagerService
 
             FileStream fs = fileInfo.Create();
             fs.Close();
-            return new CreateFileResponse()
+            return new CreateFileResult()
             {
                 Result = new(Status.Success, "fileCreated"),
-                File = new(diskPath, fileInfo),
+                File = new (diskPath, fileInfo),
             };
         }
 
-        public ResultResponse Upload(UploadRequest request, string AuthenticatedUserId)
+        public ResultResult Upload(UploadQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, request.Path);
@@ -165,17 +162,19 @@ namespace FileManagerService
             foreach (IFormFile uploadedFile in request.Files)
             {
                 string filePath = Path.Combine(contentPath, Path.GetFileName(uploadedFile.FileName));
-                if (request.Overwrite == 1 || !File.Exists(filePath))
+                if (request.Overwrite == 1 || !System.IO.File.Exists(filePath))
                 {
-                    using FileStream stream = new(filePath, FileMode.Create);
-                    uploadedFile.CopyTo(stream);
+                    using (FileStream stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        uploadedFile.CopyTo(stream);
+                    }
                 }
             }
 
-            return new ResultResponse(Status.Success, "uploaded");
+            return new ResultResult(Status.Success, "uploaded");
         }
 
-        public ResultResponse Rename(RenameRequest request, string AuthenticatedUserId)
+        public ResultResult Rename(RenameQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
 
@@ -184,29 +183,29 @@ namespace FileManagerService
                 return null;
             }
 
-            if (request.Type == EntityType.File)
+            if (request.Type == DirectoryAttributes.EntityType.File)
             {
-                if (!System.IO.File.Exists(Path.Combine(diskPath, request.OldName)))
+                if (!File.Exists(Path.Combine(diskPath, request.OldName)))
                 {
-                    return new ResultResponse(Status.Warning, "fileNotExist");
+                    return new ResultResult(Status.Warning, "fileNotExist");
                 }
 
-                System.IO.File.Move(Path.Combine(diskPath, request.OldName), Path.Combine(diskPath, request.NewName));
+                File.Move(Path.Combine(diskPath, request.OldName), Path.Combine(diskPath, request.NewName));
             }
             else
             {
                 if (!Directory.Exists(Path.Combine(diskPath, request.OldName)))
                 {
-                    return new ResultResponse(Status.Warning, "dirNotExist");
+                    return new ResultResult(Status.Warning, "dirNotExist");
                 }
 
                 Directory.Move(Path.Combine(diskPath, request.OldName), Path.Combine(diskPath, request.NewName));
             }
 
-            return new ResultResponse(Status.Success, "renamed");
+            return new ResultResult(Status.Success, "renamed");
         }
 
-        public ResultResponse Delete(DeleteRequest request, string AuthenticatedUserId)
+        public ResultResult Delete(DeleteQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             //string contentPath = GetContentPath(diskPath, fileRequest.Path);
@@ -218,7 +217,7 @@ namespace FileManagerService
 
             foreach (var Item in request.Items)
             {
-                if (Item.Type == EntityType.File)
+                if (Item.Type == DirectoryAttributes.EntityType.File)
                 {
                     if (!File.Exists(Path.Combine(diskPath, Item.Path)))
                         continue;
@@ -234,18 +233,18 @@ namespace FileManagerService
                 }
             }
 
-            return new ResultResponse(Status.Success, "deleted");
+            return new ResultResult(Status.Success, "deleted");
         }
 
-        public ResultResponse Paste(PasteRequest request, string AuthenticatedUserId)
+        public ResultResult Paste(PasteQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, request.Path);
-            const bool overwrite = false;
+            bool overwrite = false;
 
             try
             {
-                if (request.Clipboard.Type == PasteRequest.ClipboardObject.ClipboardType.Cut)
+                if (request.Clipboard.Type == PasteQuery.ClipboardObject.ClipboardType.Cut)
                 {
                     foreach (string dir in request.Clipboard.Directories)
                     {
@@ -274,15 +273,15 @@ namespace FileManagerService
                     }
                 }
 
-                return new ResultResponse(Status.Success, "copied");
+                return new ResultResult(Status.Success, "copied");
             }
             catch (Exception ex)
             {
-                return new ResultResponse(Status.Danger, ex.Message);
+                return new ResultResult(Status.Danger, ex.Message);
             }
         }
 
-        public UpdateFileResponse UpdateFile(UpdateFileRequest fileRequest, string AuthenticatedUserId)
+        public UpdateFileResult UpdateFile(UpdateFileQuery fileRequest, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, fileRequest.Path);
@@ -292,25 +291,25 @@ namespace FileManagerService
                 return null;
             }
 
-            FileInfo fileInfo = new(Path.Combine(contentPath, fileRequest.File.FileName));
+            FileInfo fileInfo = new FileInfo(Path.Combine(contentPath, fileRequest.File.FileName));
             using (FileStream stream = fileInfo.Create())
             {
                 fileRequest.File.CopyTo(stream);
             }
 
-            return new UpdateFileResponse()
+            return new UpdateFileResult()
             {
                 Result = new(Status.Success, "fileUpdated"),
                 File = new(diskPath, fileInfo),
             };
         }
 
-        public TreeResponse Tree(string path, string AuthenticatedUserId)
+        public TreeResult Tree(string path, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, path);
 
-            var response = new TreeResponse()
+            var response = new TreeResult()
             {
                 Result = new(Status.Success, "treeReturned"),
             };
@@ -323,7 +322,7 @@ namespace FileManagerService
             return response;
         }
 
-        public DownloadResponse Preview(string path, string AuthenticatedUserId)
+        public DownloadResult Preview(string path, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, path);
@@ -335,20 +334,20 @@ namespace FileManagerService
                 contentType = "application/octet-stream";
             }
 
-            return new DownloadResponse()
+            return new DownloadResult()
             {
                 ContentPath = contentPath,
                 ContentType = contentType
             };
         }
 
-        public DownloadResponse Download(string path, string AuthenticatedUserId)
+        public DownloadResult Download(string path, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, path);
             var fileInfo = new FileInfo(contentPath);
 
-            return new DownloadResponse()
+            return new DownloadResult()
             {
                 ContentPath = contentPath,
                 ContentType = "application/octet-stream",
@@ -356,13 +355,13 @@ namespace FileManagerService
             };
         }
 
-        public async Task<ResultResponse> Zip(ZipRequest request, string AuthenticatedUserId)
+        public async Task<ResultResult> Zip(ZipQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
 
             try
             {
-                await _publishEndpoint.Publish<ArchiveService.Messages.ZipMessage>(new
+                await _publishEndpoint.Publish<ZipMessage>(new
                 {
                     DiskPath = diskPath,
                     Disk = request.Disk,
@@ -374,21 +373,21 @@ namespace FileManagerService
 
                 System.Threading.Thread.Sleep(1000);
 
-                return new ResultResponse(Status.Success, "");
+                return new ResultResult(Status.Success, "");
             }
             catch
             {
-                return new ResultResponse(Status.Warning, "zipError");
+                return new ResultResult(Status.Warning, "zipError");
             }
         }
 
-        public async Task<ResultResponse> Unzip(UnzipRequest request, string AuthenticatedUserId)
+        public async Task<ResultResult> Unzip(UnzipQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
 
             try
             {
-                await _publishEndpoint.Publish<ArchiveService.Messages.UnzipMessage>(new
+                await _publishEndpoint.Publish<UnzipMessage>(new
                 {
                     DiskPath = diskPath,
                     Disk = request.Disk,
@@ -398,16 +397,18 @@ namespace FileManagerService
 
                 System.Threading.Thread.Sleep(1000);
 
-                return new ResultResponse(Status.Success, "");
+                return new ResultResult(Status.Success, "");
             }
             catch
             {
-                return new ResultResponse(Status.Warning, "zipError");
+                return new ResultResult(Status.Warning, "zipError");
             }
         }
 
-        public async Task<AddShareResponse> AddShare(AddShareRequest request, string AuthenticatedUserId)
+        public async Task<AddShareResult> AddShare(AddShareQuery request, string AuthenticatedUserId)
         {
+            string diskPath = GetDiskPath(AuthenticatedUserId);
+
             var share = new Share()
             {
                 UserId = AuthenticatedUserId,
@@ -419,7 +420,7 @@ namespace FileManagerService
             _db.Shares.Add(share);
             await _db.SaveChangesAsync();
 
-            return new AddShareResponse()
+            return new AddShareResult()
             {
                 Disk = share.Disk,
                 Path = share.Path,
@@ -427,7 +428,7 @@ namespace FileManagerService
             };
         }
 
-        public async Task<RemoveShareResponse> RemoveShare(RemoveShareRequest request, string AuthenticatedUserId)
+        public async Task<RemoveShareResult> RemoveShare(RemoveShareQuery request, string AuthenticatedUserId)
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
 
@@ -438,7 +439,7 @@ namespace FileManagerService
                 await _db.SaveChangesAsync();
             }
 
-            return new RemoveShareResponse()
+            return new RemoveShareResult()
             {
                 Disk = request.Disk,
                 Path = request.Path,

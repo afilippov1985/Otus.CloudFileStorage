@@ -1,4 +1,5 @@
-﻿namespace Common.Results
+﻿using Common.Models;
+namespace Common.Results
 {
     public class UpdateFileResult
     {
@@ -10,6 +11,6 @@
         /// <summary>
         /// описание созданного документа
         /// </summary>
-        public FileAttributes File { get; set; }
+        public Common.Models.FileAttributes File { get; set; }
     }
 }

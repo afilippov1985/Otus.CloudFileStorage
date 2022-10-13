@@ -17,7 +17,7 @@
         /// </summary>
         public long Size { get; set; }
 
-        public FileAttributes(string diskPath, System.IO.FileInfo info) : base(diskPath, info)
+        public FileAttributes(string diskPath, FileInfo info) : base(diskPath, info)
         {
             Type = EntityType.File;
             Timestamp = info.LastWriteTimeUtc.ToFileTimeUtc() / 10000000 - 11644473600;
