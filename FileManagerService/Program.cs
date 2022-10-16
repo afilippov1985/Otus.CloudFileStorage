@@ -1,6 +1,7 @@
 using Common;
 using Common.Interfaces;
 using Common.Data;
+using FileManagerService.Extensions;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -19,6 +20,8 @@ namespace FileManagerService
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddFileSystemStorageOptions(builder.Configuration);
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("FileManager")));

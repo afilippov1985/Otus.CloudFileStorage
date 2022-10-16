@@ -1,34 +1,27 @@
 ﻿using MassTransit;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Common.Interfaces;
 using Common.Results;
 using Common.Models;
 using Common.Queries;
 using Common.Data;
 using Common.Messages;
+using Microsoft.Extensions.Options;
 
 namespace Common
 {
     public class FileSystemStorage : IFileStorage
     {
-        private readonly string _storagePath;
-        private readonly string _publicAccessServiceUrl;
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly Dictionary<string, string> _mimeMap;
         private readonly ApplicationDbContext _db;
+        private readonly IOptionsMonitor<FileSystemStorageOptions> _options;
 
-        public FileSystemStorage(IPublishEndpoint publishEndpoint, ApplicationDbContext db)
+        public FileSystemStorage(IPublishEndpoint publishEndpoint, ApplicationDbContext db,
+            IOptionsMonitor<FileSystemStorageOptions> options)
         {
             _db = db;
-
-            var confBuilder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json");
-            var config = confBuilder.Build();
-            _storagePath = config["StoragePath"];
-            _publicAccessServiceUrl = config["PublicAccessServiceUrl"];
-
+            _options = options;
             _publishEndpoint = publishEndpoint;
 
             _mimeMap = new Dictionary<string, string>() {
@@ -46,6 +39,8 @@ namespace Common
 
         public InitializeResult InitializeManager(string AuthenticatedUserId)
         {
+            var settings = _options.CurrentValue;
+
             var shareList = _db.Shares
                 .Where(x => x.UserId == AuthenticatedUserId)
                 .Select(x => new AddShareResult() { Disk = x.Disk, Path = x.Path, PublicId = x.PublicId })
@@ -74,7 +69,7 @@ namespace Common
                     RightPath = "",
                     WindowsConfig = (int)WindowsConfig.OneManager,
 
-                    ShareBaseUrl = _publicAccessServiceUrl + "/view/",
+                    ShareBaseUrl = _options.CurrentValue.PublicAccessServiceUrl + "/view/",
                     ShareList = shareList,
                 }
             };
@@ -477,7 +472,7 @@ namespace Common
 
         private string GetDiskPath(string AuthenticatedUserId)
         {
-            var dir = Path.Combine(_storagePath, AuthenticatedUserId);
+            var dir = Path.Combine(_options.CurrentValue.StoragePath, AuthenticatedUserId);
             if (!Directory.Exists(dir))
             {
                 Directory.CreateDirectory(dir);
