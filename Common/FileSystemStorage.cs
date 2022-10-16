@@ -39,8 +39,6 @@ namespace Common
 
         public InitializeResult InitializeManager(string AuthenticatedUserId)
         {
-            var settings = _options.CurrentValue;
-
             var shareList = _db.Shares
                 .Where(x => x.UserId == AuthenticatedUserId)
                 .Select(x => new AddShareResult() { Disk = x.Disk, Path = x.Path, PublicId = x.PublicId })
@@ -134,7 +132,7 @@ namespace Common
                 return null;
             }
 
-            FileInfo fileInfo = new FileInfo(Path.Combine(contentPath, request.Name));
+            FileInfo fileInfo = new (Path.Combine(contentPath, request.Name));
             if (fileInfo.Exists)
             {
                 return new CreateFileResult()
@@ -160,12 +158,10 @@ namespace Common
             foreach (IFormFile uploadedFile in request.Files)
             {
                 string filePath = Path.Combine(contentPath, Path.GetFileName(uploadedFile.FileName));
-                if (request.Overwrite == 1 || !System.IO.File.Exists(filePath))
+                if (request.Overwrite == 1 || !File.Exists(filePath))
                 {
-                    using (FileStream stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        uploadedFile.CopyTo(stream);
-                    }
+                    using FileStream stream = new(filePath, FileMode.Create);
+                    uploadedFile.CopyTo(stream);
                 }
             }
 
@@ -238,7 +234,7 @@ namespace Common
         {
             string diskPath = GetDiskPath(AuthenticatedUserId);
             string contentPath = GetContentPath(diskPath, request.Path);
-            bool overwrite = false;
+            const bool overwrite = false;
 
             try
             {
@@ -289,7 +285,7 @@ namespace Common
                 return null;
             }
 
-            FileInfo fileInfo = new FileInfo(Path.Combine(contentPath, fileRequest.File.FileName));
+            FileInfo fileInfo = new (Path.Combine(contentPath, fileRequest.File.FileName));
             using (FileStream stream = fileInfo.Create())
             {
                 fileRequest.File.CopyTo(stream);
@@ -405,8 +401,6 @@ namespace Common
 
         public async Task<AddShareResult> AddShare(AddShareQuery request, string AuthenticatedUserId)
         {
-            string diskPath = GetDiskPath(AuthenticatedUserId);
-
             var share = new Share()
             {
                 UserId = AuthenticatedUserId,
