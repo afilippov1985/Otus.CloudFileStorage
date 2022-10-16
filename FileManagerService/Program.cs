@@ -1,6 +1,6 @@
-using ArchiveService;
-using FileManagerService.Data;
-using FileManagerService.Interfaces;
+using Common;
+using Common.Interfaces;
+using Common.Data;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;

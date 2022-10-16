@@ -1,9 +1,12 @@
-﻿using FileManagerService.Interfaces;
+﻿using Common.Interfaces;
+using Common.Queries;
+using Common.Models;
 using FileManagerService.Requests;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace FileManagerService.Controllers
 {
@@ -45,7 +48,13 @@ namespace FileManagerService.Controllers
         [ActionName("create-directory")]
         public IActionResult CreateDirectory([FromBody] CreateDirectoryRequest request)
         {
-            return Ok(_fileSystemStorage.CreateDirectory(request, GetAuthenticatedUserId()));
+            var query = new CreateDirectoryQuery
+            {
+                Path = request.Path,
+                Disk = request.Disk,
+                Name = request.Name
+            };
+            return Ok(_fileSystemStorage.CreateDirectory(query, GetAuthenticatedUserId()));
         }
 
         /// <summary>
@@ -55,7 +64,13 @@ namespace FileManagerService.Controllers
         [ActionName("create-file")]
         public IActionResult CreateFile([FromBody] CreateFileRequest request)
         {
-            var response = _fileSystemStorage.CreateFile(request, GetAuthenticatedUserId());
+            var query = new CreateFileQuery
+            {
+                Path = request.Path,
+                Disk = request.Disk,
+                Name = request.Name
+            };
+            var response = _fileSystemStorage.CreateFile(query, GetAuthenticatedUserId());
             if (response == null)
                 return UnprocessableEntity();
             else return Ok(response);
@@ -65,14 +80,28 @@ namespace FileManagerService.Controllers
         [ActionName("upload")]
         public IActionResult Upload([FromForm] UploadRequest request)
         {
-            return Ok(_fileSystemStorage.Upload(request, GetAuthenticatedUserId()));
+            var query = new UploadQuery
+            {
+                Path = request.Path,
+                Disk = request.Disk,
+                Overwrite = request.Overwrite,
+                Files = request.Files
+            };
+            return Ok(_fileSystemStorage.Upload(query, GetAuthenticatedUserId()));
         }
 
         [HttpPost]
         [ActionName("rename")]
         public IActionResult Rename([FromBody] RenameRequest request)
         {
-            var response = _fileSystemStorage.Rename(request, GetAuthenticatedUserId());
+            var query = new RenameQuery
+            {
+                Disk = request.Disk,
+                Type = (DirectoryAttributes.EntityType)request.Type,
+                OldName = request.OldName,
+                NewName = request.NewName
+            };
+            var response = _fileSystemStorage.Rename(query, GetAuthenticatedUserId());
             if (response == null)
                 return UnprocessableEntity();
             else return Ok(response);
@@ -82,7 +111,12 @@ namespace FileManagerService.Controllers
         [ActionName("delete")]
         public IActionResult Delete([FromBody] DeleteRequest request)
         {
-            var response = _fileSystemStorage.Delete(request, GetAuthenticatedUserId());
+            var query = new DeleteQuery
+            {
+                Disk = request.Disk,
+                Items = (IList<DeleteQuery.Item>)request.Items
+            };
+            var response = _fileSystemStorage.Delete(query, GetAuthenticatedUserId());
             if (response == null)
                 return UnprocessableEntity();
             else return Ok(response);
@@ -92,14 +126,32 @@ namespace FileManagerService.Controllers
         [ActionName("paste")]
         public IActionResult Paste([FromBody] PasteRequest request)
         {
-            return Ok(_fileSystemStorage.Paste(request, GetAuthenticatedUserId()));
+            var query = new PasteQuery
+            {
+                Path = request.Path,
+                Disk = request.Disk,
+                Clipboard = new PasteQuery.ClipboardObject
+                {
+                    Disk = request.Clipboard.Disk,
+                    Directories = request.Clipboard.Directories,
+                    Files = request.Clipboard.Files,
+                    Type = (PasteQuery.ClipboardObject.ClipboardType)request.Clipboard.Type
+                }
+            };
+            return Ok(_fileSystemStorage.Paste(query, GetAuthenticatedUserId()));
         }
 
         [HttpPost]
         [ActionName("update-file")]
         public IActionResult UpdateFile([FromForm] UpdateFileRequest fileRequest)
         {
-            var response = _fileSystemStorage.UpdateFile(fileRequest, GetAuthenticatedUserId());
+            var query = new UpdateFileQuery
+            {
+                Path = fileRequest.Path,
+                Disk = fileRequest.Disk,
+                File = fileRequest.File
+            };
+            var response = _fileSystemStorage.UpdateFile(query, GetAuthenticatedUserId());
             if (response == null)
                 return UnprocessableEntity();
             else return Ok(response);
@@ -133,28 +185,56 @@ namespace FileManagerService.Controllers
         [ActionName("zip")]
         public async Task<IActionResult> Zip([FromBody] ZipRequest request)
         {
-            return Ok(await _fileSystemStorage.Zip(request, GetAuthenticatedUserId()));
+            var query = new ZipQuery
+            {
+                Path = request.Path,
+                Disk = request.Disk,
+                Name = request.Name,
+                Elements = new ZipQuery.ZipElements
+                {
+                    Directories = request.Elements.Directories,
+                    Files = request.Elements.Files
+                }
+            };
+            return Ok(await _fileSystemStorage.Zip(query, GetAuthenticatedUserId()));
         }
 
         [HttpPost]
         [ActionName("unzip")]
         public async Task<IActionResult> Unzip([FromBody] UnzipRequest request)
         {
-            return Ok(await _fileSystemStorage.Unzip(request, GetAuthenticatedUserId()));
+            var query = new UnzipQuery
+            {
+                Path = request.Path,
+                Disk = request.Disk,
+                Folder = request.Folder
+            };
+            return Ok(await _fileSystemStorage.Unzip(query, GetAuthenticatedUserId()));
         }
 
         [HttpPost]
         [ActionName("addShare")]
         public async Task<IActionResult> AddShare([FromBody] AddShareRequest request)
         {
-            return Ok(await _fileSystemStorage.AddShare(request, GetAuthenticatedUserId()));
+            var query = new AddShareQuery
+            {
+                Disk = request.Disk,
+                Path = request.Path
+            };
+            return Ok(await _fileSystemStorage.AddShare(query, GetAuthenticatedUserId()));
         }
 
         [HttpPost]
         [ActionName("removeShare")]
         public async Task<IActionResult> RemoveShare([FromBody] RemoveShareRequest request)
         {
-            return Ok(await _fileSystemStorage.RemoveShare(request, GetAuthenticatedUserId()));
+            var query = new RemoveShareQuery
+            {
+                Disk = request.Disk,
+                Path = request.Path,
+                PublicId = request.PublicId
+            };
+            return Ok(await _fileSystemStorage.RemoveShare(query, GetAuthenticatedUserId()));
         }
     }
 }

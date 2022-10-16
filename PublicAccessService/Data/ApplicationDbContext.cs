@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using FileManagerService.Data;
+using Common.Data;
 
 namespace PublicAccessService.Data
 {
