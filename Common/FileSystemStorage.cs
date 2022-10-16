@@ -18,13 +18,16 @@ namespace Common
         private readonly Dictionary<string, string> _mimeMap;
         private readonly ApplicationDbContext _db;
 
-        public FileSystemStorage(IConfiguration configuration, IPublishEndpoint publishEndpoint, ApplicationDbContext db)
+        public FileSystemStorage(IPublishEndpoint publishEndpoint, ApplicationDbContext db)
         {
             _db = db;
 
-            //todo откуда считывать настройки???
-            //_storagePath = configuration.GetValue<string>("StoragePath");
-            //_publicAccessServiceUrl = configuration.GetValue<string>("PublicAccessServiceUrl");
+            var confBuilder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json");
+            var config = confBuilder.Build();
+            _storagePath = config["StoragePath"];
+            _publicAccessServiceUrl = config["PublicAccessServiceUrl"];
 
             _publishEndpoint = publishEndpoint;
 
