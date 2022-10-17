@@ -4,8 +4,8 @@ using Common.Interfaces;
 using Common.Results;
 using Common.Models;
 using Common.Queries;
-using Common.Data;
 using Common.Messages;
+using Common.Data;
 using Microsoft.Extensions.Options;
 
 namespace Common
@@ -14,7 +14,7 @@ namespace Common
     {
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly Dictionary<string, string> _mimeMap;
-        private readonly ApplicationDbContext _db;
+        private readonly ApplicationDbContext _db; //todo убрать его из Common
         private readonly IOptionsMonitor<FileSystemStorageOptions> _options;
 
         public FileSystemStorage(IPublishEndpoint publishEndpoint, ApplicationDbContext db,
@@ -347,32 +347,6 @@ namespace Common
                 ContentType = "application/octet-stream",
                 NameFile = fileInfo.Name
             };
-        }
-
-        public async Task<ResultResult> Zip(ZipQuery request, string AuthenticatedUserId)
-        {
-            string diskPath = GetDiskPath(AuthenticatedUserId);
-
-            try
-            {
-                await _publishEndpoint.Publish<ZipMessage>(new
-                {
-                    DiskPath = diskPath,
-                    Disk = request.Disk,
-                    Path = request.Path,
-                    Name = request.Name,
-                    Directories = request.Elements.Directories,
-                    Files = request.Elements.Files,
-                });
-
-                System.Threading.Thread.Sleep(1000);
-
-                return new ResultResult(Status.Success, "");
-            }
-            catch
-            {
-                return new ResultResult(Status.Warning, "zipError");
-            }
         }
 
         public async Task<ResultResult> Unzip(UnzipQuery request, string AuthenticatedUserId)

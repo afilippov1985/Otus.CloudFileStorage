@@ -17,7 +17,6 @@ namespace Common.Interfaces
         public TreeResult Tree(string path, string AuthenticatedUserId);
         public DownloadResult Preview(string path, string AuthenticatedUserId);
         public DownloadResult Download(string path, string AuthenticatedUserId);
-        public Task<ResultResult> Zip(ZipQuery request, string AuthenticatedUserId);
         public Task<ResultResult> Unzip(UnzipQuery request, string AuthenticatedUserId);
         public Task<AddShareResult> AddShare(AddShareQuery request, string AuthenticatedUserId);
         public Task<RemoveShareResult> RemoveShare(RemoveShareQuery request, string AuthenticatedUserId);

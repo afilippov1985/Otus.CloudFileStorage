@@ -7,6 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using FileManagerService.Responses;
+using System.IO;
+using MassTransit;
+using ArchiveService.Messages;
+using Microsoft.Extensions.Options;
 
 namespace FileManagerService.Controllers
 {
@@ -14,10 +19,17 @@ namespace FileManagerService.Controllers
     public class FileManagerController : ControllerBase
     {
         private readonly IFileStorage _fileSystemStorage;
+        private readonly IPublishEndpoint _publishEndpoint;
+        private readonly IOptionsMonitor<FileSystemStorageOptions> _options;
 
-        public FileManagerController(IFileStorage fileSystemStorage)
+        public FileManagerController(
+            IFileStorage fileSystemStorage,
+            IPublishEndpoint publishEndpoint,
+            IOptionsMonitor<FileSystemStorageOptions> options)
         {
             _fileSystemStorage = fileSystemStorage;
+            _publishEndpoint = publishEndpoint;
+            _options = options;
         }
 
         private string GetAuthenticatedUserId()
@@ -185,18 +197,27 @@ namespace FileManagerService.Controllers
         [ActionName("zip")]
         public async Task<IActionResult> Zip([FromBody] ZipRequest request)
         {
-            var query = new ZipQuery
+            string diskPath = GetDiskPath(request.Disk);
+            try
             {
-                Path = request.Path,
-                Disk = request.Disk,
-                Name = request.Name,
-                Elements = new ZipQuery.ZipElements
+                await _publishEndpoint.Publish<ZipMessage>(new
                 {
+                    DiskPath = diskPath,
+                    Disk = request.Disk,
+                    Path = request.Path,
+                    Name = request.Name,
                     Directories = request.Elements.Directories,
-                    Files = request.Elements.Files
-                }
-            };
-            return Ok(await _fileSystemStorage.Zip(query, GetAuthenticatedUserId()));
+                    Files = request.Elements.Files,
+                });
+
+                System.Threading.Thread.Sleep(1000);
+
+                return Ok(new ResultResponse(Status.Success, ""));
+            }
+            catch
+            {
+                return Ok(new ResultResponse(Status.Warning, "zipError"));
+            }
         }
 
         [HttpPost]
@@ -235,6 +256,16 @@ namespace FileManagerService.Controllers
                 PublicId = request.PublicId
             };
             return Ok(await _fileSystemStorage.RemoveShare(query, GetAuthenticatedUserId()));
+        }
+
+        private string GetDiskPath(string AuthenticatedUserId)
+        {
+            var dir = Path.Combine(_options.CurrentValue.StoragePath, AuthenticatedUserId);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            return dir;
         }
     }
 }

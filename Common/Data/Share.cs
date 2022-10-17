@@ -22,7 +22,7 @@ namespace Common.Data
 
         private static string GenerateRandomId()
         {
-            Random rdm = new Random();
+            var rdm = new Random();
             string hexValue = string.Empty;
             int num;
 
