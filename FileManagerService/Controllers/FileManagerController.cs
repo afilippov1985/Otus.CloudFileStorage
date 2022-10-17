@@ -12,6 +12,8 @@ using System.IO;
 using MassTransit;
 using ArchiveService.Messages;
 using Microsoft.Extensions.Options;
+using Common.Data;
+using System.Linq;
 
 namespace FileManagerService.Controllers
 {
@@ -21,15 +23,18 @@ namespace FileManagerService.Controllers
         private readonly IFileStorage _fileSystemStorage;
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly IOptionsMonitor<FileSystemStorageOptions> _options;
+        private readonly ApplicationDbContext _db;
 
         public FileManagerController(
             IFileStorage fileSystemStorage,
             IPublishEndpoint publishEndpoint,
-            IOptionsMonitor<FileSystemStorageOptions> options)
+            IOptionsMonitor<FileSystemStorageOptions> options,
+            ApplicationDbContext db)
         {
             _fileSystemStorage = fileSystemStorage;
             _publishEndpoint = publishEndpoint;
             _options = options;
+            _db = db;
         }
 
         private string GetAuthenticatedUserId()
@@ -224,38 +229,69 @@ namespace FileManagerService.Controllers
         [ActionName("unzip")]
         public async Task<IActionResult> Unzip([FromBody] UnzipRequest request)
         {
-            var query = new UnzipQuery
+            string diskPath = GetDiskPath(request.Disk);
+
+            try
             {
-                Path = request.Path,
-                Disk = request.Disk,
-                Folder = request.Folder
-            };
-            return Ok(await _fileSystemStorage.Unzip(query, GetAuthenticatedUserId()));
+                await _publishEndpoint.Publish<ArchiveService.Messages.UnzipMessage>(new
+                {
+                    DiskPath = diskPath,
+                    Disk = request.Disk,
+                    Path = request.Path,
+                    Folder = request.Folder,
+                });
+
+                System.Threading.Thread.Sleep(1000);
+
+                return Ok(new ResultResponse(Status.Success, ""));
+            }
+            catch
+            {
+                return Ok(new ResultResponse(Status.Warning, "zipError"));
+            }
         }
 
         [HttpPost]
         [ActionName("addShare")]
         public async Task<IActionResult> AddShare([FromBody] AddShareRequest request)
         {
-            var query = new AddShareQuery
+            var share = new Share()
             {
+                UserId = GetAuthenticatedUserId(),
                 Disk = request.Disk,
-                Path = request.Path
+                Path = request.Path,
+                CreatedAt = DateTime.UtcNow,
             };
-            return Ok(await _fileSystemStorage.AddShare(query, GetAuthenticatedUserId()));
+
+            _db.Shares.Add(share);
+            await _db.SaveChangesAsync();
+
+            return Ok(new AddShareResponse()
+            {
+                Disk = share.Disk,
+                Path = share.Path,
+                PublicId = share.PublicId,
+            });
         }
 
         [HttpPost]
         [ActionName("removeShare")]
         public async Task<IActionResult> RemoveShare([FromBody] RemoveShareRequest request)
         {
-            var query = new RemoveShareQuery
+            string diskPath = GetDiskPath(request.Disk);
+
+            var share = _db.Shares.Where(x => x.PublicId == request.PublicId).FirstOrDefault();
+            if (share != null)
+            {
+                _db.Shares.Remove(share);
+                await _db.SaveChangesAsync();
+            }
+
+            return Ok(new RemoveShareResponse()
             {
                 Disk = request.Disk,
                 Path = request.Path,
-                PublicId = request.PublicId
-            };
-            return Ok(await _fileSystemStorage.RemoveShare(query, GetAuthenticatedUserId()));
+            });
         }
 
         private string GetDiskPath(string AuthenticatedUserId)

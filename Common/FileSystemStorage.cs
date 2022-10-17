@@ -4,7 +4,6 @@ using Common.Interfaces;
 using Common.Results;
 using Common.Models;
 using Common.Queries;
-using Common.Messages;
 using Common.Data;
 using Microsoft.Extensions.Options;
 
@@ -12,17 +11,14 @@ namespace Common
 {
     public class FileSystemStorage : IFileStorage
     {
-        private readonly IPublishEndpoint _publishEndpoint;
         private readonly Dictionary<string, string> _mimeMap;
         private readonly ApplicationDbContext _db; //todo убрать его из Common
         private readonly IOptionsMonitor<FileSystemStorageOptions> _options;
 
-        public FileSystemStorage(IPublishEndpoint publishEndpoint, ApplicationDbContext db,
-            IOptionsMonitor<FileSystemStorageOptions> options)
+        public FileSystemStorage(ApplicationDbContext db, IOptionsMonitor<FileSystemStorageOptions> options)
         {
             _db = db;
             _options = options;
-            _publishEndpoint = publishEndpoint;
 
             _mimeMap = new Dictionary<string, string>() {
                 { ".bmp", "image/x-ms-bmp" },
@@ -346,69 +342,6 @@ namespace Common
                 ContentPath = contentPath,
                 ContentType = "application/octet-stream",
                 NameFile = fileInfo.Name
-            };
-        }
-
-        public async Task<ResultResult> Unzip(UnzipQuery request, string AuthenticatedUserId)
-        {
-            string diskPath = GetDiskPath(AuthenticatedUserId);
-
-            try
-            {
-                await _publishEndpoint.Publish<UnzipMessage>(new
-                {
-                    DiskPath = diskPath,
-                    Disk = request.Disk,
-                    Path = request.Path,
-                    Folder = request.Folder,
-                });
-
-                System.Threading.Thread.Sleep(1000);
-
-                return new ResultResult(Status.Success, "");
-            }
-            catch
-            {
-                return new ResultResult(Status.Warning, "zipError");
-            }
-        }
-
-        public async Task<AddShareResult> AddShare(AddShareQuery request, string AuthenticatedUserId)
-        {
-            var share = new Share()
-            {
-                UserId = AuthenticatedUserId,
-                Disk = request.Disk,
-                Path = request.Path,
-                CreatedAt = DateTime.UtcNow,
-            };
-
-            _db.Shares.Add(share);
-            await _db.SaveChangesAsync();
-
-            return new AddShareResult()
-            {
-                Disk = share.Disk,
-                Path = share.Path,
-                PublicId = share.PublicId,
-            };
-        }
-
-        public async Task<RemoveShareResult> RemoveShare(RemoveShareQuery request, string AuthenticatedUserId)
-        {
-            string diskPath = GetDiskPath(AuthenticatedUserId);
-
-            var share = _db.Shares.Where(x => x.PublicId == request.PublicId).FirstOrDefault();
-            if (share != null)
-            {
-                _db.Shares.Remove(share);
-                await _db.SaveChangesAsync();
-            }
-
-            return new RemoveShareResult()
-            {
-                Disk = request.Disk,
-                Path = request.Path,
             };
         }
 
