@@ -12,12 +12,10 @@ namespace Common
     public class FileSystemStorage : IFileStorage
     {
         private readonly Dictionary<string, string> _mimeMap;
-        private readonly ApplicationDbContext _db; //todo убрать его из Common
         private readonly IOptionsMonitor<FileSystemStorageOptions> _options;
 
-        public FileSystemStorage(ApplicationDbContext db, IOptionsMonitor<FileSystemStorageOptions> options)
+        public FileSystemStorage(IOptionsMonitor<FileSystemStorageOptions> options)
         {
-            _db = db;
             _options = options;
 
             _mimeMap = new Dictionary<string, string>() {
@@ -30,42 +28,6 @@ namespace Common
                 { ".tif", "image/tiff" },
                 { ".tiff", "image/tiff" },
                 { ".webp", "image/webp" },
-            };
-        }
-
-        public InitializeResult InitializeManager(string AuthenticatedUserId)
-        {
-            var shareList = _db.Shares
-                .Where(x => x.UserId == AuthenticatedUserId)
-                .Select(x => new AddShareResult() { Disk = x.Disk, Path = x.Path, PublicId = x.PublicId })
-                .ToList();
-
-            return new InitializeResult()
-            {
-                Result = new(Status.Success, ""),
-                Config = new()
-                {
-                    Acl = false,
-                    HiddenFiles = true,
-                    Disks = new()
-                    {
-                        { "public",
-                            new()
-                            {
-                                { "driver", "local" }
-                            }
-                        }
-                    },
-                    Lang = "ru",
-                    LeftDisk = "",
-                    RightDisk = "",
-                    LeftPath = "",
-                    RightPath = "",
-                    WindowsConfig = (int)WindowsConfig.OneManager,
-
-                    ShareBaseUrl = _options.CurrentValue.PublicAccessServiceUrl + "/view/",
-                    ShareList = shareList,
-                }
             };
         }
 

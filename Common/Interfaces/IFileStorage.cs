@@ -5,7 +5,6 @@ namespace Common.Interfaces
 {
     public interface IFileStorage
     {
-        public InitializeResult InitializeManager(string AuthenticatedUserId);
         public ContentResult StorageContent(string path, string AuthenticatedUserId);
         public CreateDirectoryResult CreateDirectory(CreateDirectoryQuery request, string AuthenticatedUserId);
         public CreateFileResult CreateFile(CreateFileQuery request, string AuthenticatedUserId);

@@ -1,6 +1,7 @@
 ﻿using Common.Interfaces;
 using Common.Queries;
 using Common.Models;
+using Common.Data;
 using FileManagerService.Requests;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +13,7 @@ using System.IO;
 using MassTransit;
 using ArchiveService.Messages;
 using Microsoft.Extensions.Options;
-using Common.Data;
+using FileManagerService.Data;
 using System.Linq;
 
 namespace FileManagerService.Controllers
@@ -51,7 +52,38 @@ namespace FileManagerService.Controllers
         [ActionName("initialize")]
         public IActionResult InitializeManager()
         {
-            return Ok(_fileSystemStorage.InitializeManager(GetAuthenticatedUserId()));
+            var shareList = _db.Shares
+                .Where(x => x.UserId == GetAuthenticatedUserId())
+                .Select(x => new AddShareResponse() { Disk = x.Disk, Path = x.Path, PublicId = x.PublicId })
+                .ToList();
+
+            return Ok(new InitializeResponse()
+            {
+                Result = new(Status.Success, ""),
+                Config = new()
+                {
+                    Acl = false,
+                    HiddenFiles = true,
+                    Disks = new()
+                    {
+                        { "public",
+                            new()
+                            {
+                                { "driver", "local" }
+                            }
+                        }
+                    },
+                    Lang = "ru",
+                    LeftDisk = "",
+                    RightDisk = "",
+                    LeftPath = "",
+                    RightPath = "",
+                    WindowsConfig = (int)WindowsConfig.OneManager,
+
+                    ShareBaseUrl = _options.CurrentValue.PublicAccessServiceUrl + "/view/",
+                    ShareList = shareList,
+                }
+            });
         }
 
         [HttpGet]
