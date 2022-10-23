@@ -1,20 +1,20 @@
-﻿using FileManagerService.Models;
+﻿using Core.Domain.ValueObjects;
 
 namespace FileManagerService.Responses
 {
     /// <summary>
-    /// ответ на запрос создания документа 
+    /// ответ на запрос создания документа
     /// </summary>
     public class CreateFileResponse
     {
         /// <summary>
         /// результат
         /// </summary>
-        public Result Result { get;set;}
+        public Result Result { get; set; }
 
         /// <summary>
         /// описание созданного документа
         /// </summary>
-        public FileAttributes File { get; set;} 
+        public FileProperties File { get; set; }
     }
 }

@@ -1,7 +1,5 @@
-using Common;
-using Common.Interfaces;
-using Common.Data;
-using FileManagerService.Extensions;
+using Core.Infrastructure.DataAccess;
+using Core.Domain.Entities;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -12,17 +10,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using FileManagerService.Data;
 
 namespace FileManagerService
 {
-    public static class Program
+    public class Program
     {
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
-            builder.Services.AddFileSystemStorageOptions(builder.Configuration);
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("FileManager")));
@@ -52,17 +47,17 @@ namespace FileManagerService
                     cfg.ConfigureEndpoints(context);
                 });
             });
-
+            
             builder.Services.AddAntiforgery((options) => {
                 options.HeaderName = "X-XSRF-TOKEN";
                 options.Cookie.HttpOnly = false;
             });
 
-            builder.Services.AddControllersWithViews((options) =>
-                options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute())).AddJsonOptions((options) =>
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
-
-            builder.Services.AddTransient<IFileStorage, FileSystemStorage>();
+            builder.Services.AddControllersWithViews((options) => {
+                // options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+            }).AddJsonOptions((options) => {
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+            });
 
             var app = builder.Build();
 

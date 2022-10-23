@@ -17,10 +17,10 @@ namespace FileManagerService.Requests
             public string Disk { get; set; }
 
             // список папок для архивирования
-            public IList<string> Directories { get; set; }
+            public IEnumerable<string> Directories { get; set; }
 
             // списко файлов для архивирования
-            public IList<string> Files { get; set; }
+            public IEnumerable<string> Files { get; set; }
 
             public enum ClipboardType
             {

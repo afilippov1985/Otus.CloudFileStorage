@@ -1,4 +1,12 @@
+using Core.Domain.Entities;
+using Core.Infrastructure.DataAccess;
 using MassTransit;
+//using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
+//using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace ArchiveService
@@ -10,6 +18,9 @@ namespace ArchiveService
             IHost host = Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
+                    services.AddDbContext<ApplicationDbContext>(options =>
+                        options.UseNpgsql(hostContext.Configuration.GetConnectionString("FileManager")));
+
                     services.AddMassTransit((x) => {
                         var RabbitSection = hostContext.Configuration.GetSection("Rabbit");
 

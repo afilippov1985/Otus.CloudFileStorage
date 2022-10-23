@@ -1,5 +1,4 @@
-﻿using FileManagerService.Models;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace FileManagerService.Responses
 {
@@ -13,11 +12,12 @@ namespace FileManagerService.Responses
         /// <summary>
         /// Информация о всех каталогах по указанному пути
         /// </summary>
-        public IList<TreeAttributes> Directories { get; set; }
+        // FIX
+        // public IList<TreeAttributes> Directories { get; set; }
 
         public TreeResponse()
         {
-            Directories = new List<TreeAttributes>();
+            // Directories = new List<TreeAttributes>();
         }
     }
 }

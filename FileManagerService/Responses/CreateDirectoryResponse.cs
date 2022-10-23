@@ -1,4 +1,4 @@
-﻿using FileManagerService.Models;
+﻿using Core.Domain.ValueObjects;
 using System.Collections.Generic;
 
 namespace FileManagerService.Responses
@@ -13,16 +13,16 @@ namespace FileManagerService.Responses
         /// <summary>
         /// Информация о созданном каталоге
         /// </summary>
-        public DirectoryAttributes Directory { get; set; }
+        public DirectoryProperties Directory { get; set; }
 
         /// <summary>
         /// Информация о всех каталогах по указанному пути
         /// </summary>
-        public IList<TreeAttributes> Tree { get; set; }
+        public IList<TreeProperties> Tree { get; set; } = new List<TreeProperties>();
 
         public CreateDirectoryResponse()
         {
-            Tree = new List<TreeAttributes>();
+            Tree = new List<TreeProperties>();
         }
     }
 }

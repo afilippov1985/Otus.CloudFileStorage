@@ -1,41 +1,48 @@
-﻿using Common.Interfaces;
-using Common.Queries;
-using Common.Models;
-using Common.Data;
+﻿using Core.Application.Factories;
+using Core.Domain.Entities;
+using Core.Domain.ValueObjects;
+using Core.Domain.Services.Abstractions;
+using Core.Infrastructure.DataAccess;
 using FileManagerService.Requests;
+using FileManagerService.Responses;
+using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using System;
-using System.Threading.Tasks;
 using System.Collections.Generic;
-using FileManagerService.Responses;
-using System.IO;
-using MassTransit;
-using ArchiveService.Messages;
-using Microsoft.Extensions.Options;
-using FileManagerService.Data;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace FileManagerService.Controllers
 {
     [Route("/file-manager/[action]")]
     public class FileManagerController : ControllerBase
     {
-        private readonly IFileStorage _fileSystemStorage;
+        private readonly string _publicAccessServiceUrl;
         private readonly IPublishEndpoint _publishEndpoint;
-        private readonly IOptionsMonitor<FileSystemStorageOptions> _options;
+        private readonly Dictionary<string, string> _mimeMap;
         private readonly ApplicationDbContext _db;
 
-        public FileManagerController(
-            IFileStorage fileSystemStorage,
-            IPublishEndpoint publishEndpoint,
-            IOptionsMonitor<FileSystemStorageOptions> options,
-            ApplicationDbContext db)
+        public FileManagerController(IConfiguration configuration, IPublishEndpoint publishEndpoint, ApplicationDbContext db)
         {
-            _fileSystemStorage = fileSystemStorage;
-            _publishEndpoint = publishEndpoint;
-            _options = options;
             _db = db;
+
+            _publicAccessServiceUrl = configuration.GetValue<string>("PublicAccessServiceUrl");
+
+            _publishEndpoint = publishEndpoint;
+
+            _mimeMap = new Dictionary<string, string>() {
+                { ".bmp", "image/x-ms-bmp" },
+                { ".gif", "image/gif" },
+                { ".ico", "image/x-icon" },
+                { ".jpeg", "image/jpeg" },
+                { ".jpg", "image/jpeg" },
+                { ".png", "image/png" },
+                { ".tif", "image/tiff" },
+                { ".tiff", "image/tiff" },
+                { ".webp", "image/webp" },
+            };
         }
 
         private string GetAuthenticatedUserId()
@@ -46,6 +53,16 @@ namespace FileManagerService.Controllers
                 throw new UnauthorizedAccessException();
             }
             return claim.Value;
+        }
+
+        private UserDisk GetAuthenticatedUserDisk(string diskName)
+        {
+            return _db.GetUserDisk(GetAuthenticatedUserId(), diskName);
+        }
+
+        private IFileStorage GetFileStorage(string diskName)
+        {
+            return FileStorageFactory.GetFileStorage(GetAuthenticatedUserDisk(diskName));
         }
 
         [HttpGet]
@@ -80,7 +97,7 @@ namespace FileManagerService.Controllers
                     RightPath = "",
                     WindowsConfig = (int)WindowsConfig.OneManager,
 
-                    ShareBaseUrl = _options.CurrentValue.PublicAccessServiceUrl + "/view/",
+                    ShareBaseUrl = _publicAccessServiceUrl + "/view/",
                     ShareList = shareList,
                 }
             });
@@ -88,158 +105,197 @@ namespace FileManagerService.Controllers
 
         [HttpGet]
         [ActionName("content")]
-        public IActionResult StorageContent([FromQuery(Name = "path")] string path)
+        public async Task<IActionResult> StorageContent([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
         {
-            return Ok(_fileSystemStorage.StorageContent(path, GetAuthenticatedUserId()));
+            var storage = GetFileStorage(disk);
+
+            var list = await storage.GetListingAsync(path);
+
+            var dirs = list.Where(x => x is not FileProperties);
+
+            var files = list.Where(x => x is FileProperties);
+
+            return Ok(new ContentResponse()
+            {
+                Result = new(Status.Success, ""),
+                Directories = dirs,
+                Files = files,
+            });
         }
 
         [HttpPost]
         [ActionName("create-directory")]
-        public IActionResult CreateDirectory([FromBody] CreateDirectoryRequest request)
+        public async Task<IActionResult> CreateDirectory([FromBody] CreateDirectoryRequest request)
         {
-            var query = new CreateDirectoryQuery
+            var storage = GetFileStorage(request.Disk);
+
+            var newDirectoryProperties = await storage.CreateDirectoryAsync(request.Path, request.Name);
+
+            var response = new CreateDirectoryResponse()
             {
-                Path = request.Path,
-                Disk = request.Disk,
-                Name = request.Name
+                Result = new(Status.Success, "dirCreated"),
+                Directory = newDirectoryProperties,
             };
-            return Ok(_fileSystemStorage.CreateDirectory(query, GetAuthenticatedUserId()));
+
+            return Ok(response);
         }
 
         /// <summary>
         /// запрос на содание файла
         /// </summary>
+        /// <param name="fileRequest"></param>
+        /// <returns></returns>
         [HttpPost]
         [ActionName("create-file")]
-        public IActionResult CreateFile([FromBody] CreateFileRequest request)
+        public async Task<IActionResult> CreateFile([FromBody] CreateFileRequest request)
         {
-            var query = new CreateFileQuery
+            var storage = GetFileStorage(request.Disk);
+
+            var fileProperties = await storage.CreateFileAsync(request.Path, request.Name);
+
+            return Ok(new CreateFileResponse()
             {
-                Path = request.Path,
-                Disk = request.Disk,
-                Name = request.Name
-            };
-            var response = _fileSystemStorage.CreateFile(query, GetAuthenticatedUserId());
-            if (response == null)
-                return UnprocessableEntity();
-            else return Ok(response);
+                Result = new(Status.Success, "fileCreated"),
+                File = fileProperties,
+            });
         }
 
         [HttpPost]
         [ActionName("upload")]
-        public IActionResult Upload([FromForm] UploadRequest request)
+        public async Task<IActionResult> Upload([FromForm] UploadRequest request)
         {
-            var query = new UploadQuery
-            {
-                Path = request.Path,
-                Disk = request.Disk,
-                Overwrite = request.Overwrite,
-                Files = request.Files
-            };
-            return Ok(_fileSystemStorage.Upload(query, GetAuthenticatedUserId()));
+            var storage = GetFileStorage(request.Disk);
+
+            await Parallel.ForEachAsync(request.Files, async (uploadedFile, cancellationToken) => {
+                await storage.WriteToFileAsync(request.Path, uploadedFile.FileName, uploadedFile.OpenReadStream(), request.Overwrite == 1);
+            });
+
+            return Ok(new ResultResponse(Status.Success, "uploaded"));
         }
 
         [HttpPost]
         [ActionName("rename")]
-        public IActionResult Rename([FromBody] RenameRequest request)
+        public async Task<IActionResult> Rename([FromBody] RenameRequest request)
         {
-            var query = new RenameQuery
-            {
-                Disk = request.Disk,
-                Type = (DirectoryAttributes.EntityType)request.Type,
-                OldName = request.OldName,
-                NewName = request.NewName
-            };
-            var response = _fileSystemStorage.Rename(query, GetAuthenticatedUserId());
-            if (response == null)
-                return UnprocessableEntity();
-            else return Ok(response);
+            var storage = GetFileStorage(request.Disk);
+
+            var success = await storage.RenameAsync(request.OldName, request.NewName);
+
+            return Ok(new ResultResponse(Status.Success, "renamed"));
         }
 
         [HttpPost]
         [ActionName("delete")]
-        public IActionResult Delete([FromBody] DeleteRequest request)
+        public async Task<IActionResult> Delete([FromBody] DeleteRequest request)
         {
-            var query = new DeleteQuery
-            {
-                Disk = request.Disk,
-                Items = (IList<DeleteQuery.Item>)request.Items
-            };
-            var response = _fileSystemStorage.Delete(query, GetAuthenticatedUserId());
-            if (response == null)
-                return UnprocessableEntity();
-            else return Ok(response);
+            var storage = GetFileStorage(request.Disk);
+
+            await Parallel.ForEachAsync(request.Items, async (item, cancellationToken) => {
+                await storage.DeleteAsync(item.Path);
+            });
+
+            return Ok(new ResultResponse(Status.Success, "deleted"));
         }
 
         [HttpPost]
         [ActionName("paste")]
-        public IActionResult Paste([FromBody] PasteRequest request)
+        public async Task<IActionResult> Paste([FromBody] PasteRequest request)
         {
-            var query = new PasteQuery
+            var storage = GetFileStorage(request.Disk);
+            if (request.Path == null)
             {
-                Path = request.Path,
-                Disk = request.Disk,
-                Clipboard = new PasteQuery.ClipboardObject
-                {
-                    Disk = request.Clipboard.Disk,
-                    Directories = request.Clipboard.Directories,
-                    Files = request.Clipboard.Files,
-                    Type = (PasteQuery.ClipboardObject.ClipboardType)request.Clipboard.Type
-                }
-            };
-            return Ok(_fileSystemStorage.Paste(query, GetAuthenticatedUserId()));
+                request.Path = "";
+            }
+
+            if (request.Clipboard.Type == PasteRequest.ClipboardObject.ClipboardType.Cut)
+            {
+                await Parallel.ForEachAsync(request.Clipboard.Directories, async (item, cancellationToken) => {
+                    await storage.MoveToDirectoryAsync(item, request.Path);
+                });
+                await Parallel.ForEachAsync(request.Clipboard.Files, async (item, cancellationToken) => {
+                    await storage.MoveToDirectoryAsync(item, request.Path);
+                });
+            }
+            else
+            {
+                await Parallel.ForEachAsync(request.Clipboard.Directories, async (item, cancellationToken) => {
+                    await storage.CopyToDirectoryAsync(item, request.Path);
+                });
+                await Parallel.ForEachAsync(request.Clipboard.Files, async (item, cancellationToken) => {
+                    await storage.CopyToDirectoryAsync(item, request.Path);
+                });
+            }
+
+            return Ok(new ResultResponse(Status.Success, "copied"));
         }
 
         [HttpPost]
         [ActionName("update-file")]
-        public IActionResult UpdateFile([FromForm] UpdateFileRequest fileRequest)
+        public async Task<IActionResult> UpdateFile([FromForm] UpdateFileRequest request)
         {
-            var query = new UpdateFileQuery
+            var storage = GetFileStorage(request.Disk);
+
+            var fileProperties = await storage.WriteToFileAsync(request.Path, request.File.FileName, request.File.OpenReadStream(), true);
+
+            return Ok(new UpdateFileResponse()
             {
-                Path = fileRequest.Path,
-                Disk = fileRequest.Disk,
-                File = fileRequest.File
-            };
-            var response = _fileSystemStorage.UpdateFile(query, GetAuthenticatedUserId());
-            if (response == null)
-                return UnprocessableEntity();
-            else return Ok(response);
+                Result = new(Status.Success, "fileUpdated"),
+                File = fileProperties,
+            });
         }
 
         [HttpGet]
         [ActionName("tree")]
-        public IActionResult Tree([FromQuery(Name = "path")] string path)
+        public IActionResult Tree([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
         {
-            return Ok(_fileSystemStorage.Tree(path, GetAuthenticatedUserId()));
+            // FIX
+            
+            var response = new TreeResponse() {
+                Result = new(Status.Success, "treeReturned"),
+            };
+
+            return Ok(response);
         }
 
         [HttpGet]
+        [ResponseCache(NoStore = true)]
         [ActionName("preview")]
-        public IActionResult Preview([FromQuery(Name = "path")] string path)
+        public async Task<IActionResult> Preview([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
         {
-            var response = _fileSystemStorage.Preview(path, GetAuthenticatedUserId());
-            return PhysicalFile(response.ContentPath, response.ContentType);
+            var storage = GetFileStorage(disk);
+
+            var (fileProperties, stream) = await storage.ReadFileAsync(path);
+
+            string contentType;
+            if (!_mimeMap.TryGetValue(fileProperties.Extension.ToLower(), out contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+
+            return File(stream, contentType, fileProperties.Filename);
         }
 
         [HttpGet]
         [ResponseCache(NoStore = true)]
         [ActionName("download")]
-        public IActionResult Download([FromQuery(Name = "path")] string path)
+        public async Task<IActionResult> Download([FromQuery(Name = "disk")] string disk, [FromQuery(Name = "path")] string path)
         {
-            var response = _fileSystemStorage.Preview(path, GetAuthenticatedUserId());
-            return PhysicalFile(response.ContentPath, response.ContentType, response.NameFile);
+            var storage = GetFileStorage(disk);
+
+            var (fileProperties, stream) = await storage.ReadFileAsync(path);
+
+            return File(stream, "application/octet-stream", fileProperties.Filename);
         }
 
         [HttpPost]
         [ActionName("zip")]
         public async Task<IActionResult> Zip([FromBody] ZipRequest request)
         {
-            string diskPath = GetDiskPath(request.Disk);
             try
             {
-                await _publishEndpoint.Publish<ZipMessage>(new
+                await _publishEndpoint.Publish<Core.Domain.Messages.ZipMessage>(new
                 {
-                    DiskPath = diskPath,
+                    UserId = GetAuthenticatedUserId(),
                     Disk = request.Disk,
                     Path = request.Path,
                     Name = request.Name,
@@ -247,7 +303,7 @@ namespace FileManagerService.Controllers
                     Files = request.Elements.Files,
                 });
 
-                System.Threading.Thread.Sleep(1000);
+                await Task.Delay(1000);
 
                 return Ok(new ResultResponse(Status.Success, ""));
             }
@@ -261,13 +317,11 @@ namespace FileManagerService.Controllers
         [ActionName("unzip")]
         public async Task<IActionResult> Unzip([FromBody] UnzipRequest request)
         {
-            string diskPath = GetDiskPath(request.Disk);
-
             try
             {
-                await _publishEndpoint.Publish<ArchiveService.Messages.UnzipMessage>(new
+                await _publishEndpoint.Publish<Core.Domain.Messages.UnzipMessage>(new
                 {
-                    DiskPath = diskPath,
+                    UserId = GetAuthenticatedUserId(),
                     Disk = request.Disk,
                     Path = request.Path,
                     Folder = request.Folder,
@@ -298,8 +352,7 @@ namespace FileManagerService.Controllers
             _db.Shares.Add(share);
             await _db.SaveChangesAsync();
 
-            return Ok(new AddShareResponse()
-            {
+            return Ok(new AddShareResponse() {
                 Disk = share.Disk,
                 Path = share.Path,
                 PublicId = share.PublicId,
@@ -310,9 +363,7 @@ namespace FileManagerService.Controllers
         [ActionName("removeShare")]
         public async Task<IActionResult> RemoveShare([FromBody] RemoveShareRequest request)
         {
-            string diskPath = GetDiskPath(request.Disk);
-
-            var share = _db.Shares.Where(x => x.PublicId == request.PublicId).FirstOrDefault();
+            var share = _db.GetShare(request.PublicId);
             if (share != null)
             {
                 _db.Shares.Remove(share);
@@ -324,16 +375,6 @@ namespace FileManagerService.Controllers
                 Disk = request.Disk,
                 Path = request.Path,
             });
-        }
-
-        private string GetDiskPath(string AuthenticatedUserId)
-        {
-            var dir = Path.Combine(_options.CurrentValue.StoragePath, AuthenticatedUserId);
-            if (!Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-            }
-            return dir;
         }
     }
 }

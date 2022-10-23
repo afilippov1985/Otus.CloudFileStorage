@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using FileManagerService.Models;
+﻿using Core.Domain.ValueObjects;
+using System.Collections.Generic;
 
 namespace FileManagerService.Responses
 {
@@ -7,8 +7,8 @@ namespace FileManagerService.Responses
     {
         public Result Result { get; set; }
 
-        public IList<DirectoryAttributes> Directories { get; set; }
+        public IEnumerable<object> Directories { get; set; }
 
-        public IList<FileAttributes> Files { get; set; }
+        public IEnumerable<object> Files { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿using FileManagerService.Models;
+﻿using Core.Domain.ValueObjects;
 
 namespace FileManagerService.Responses
 {
@@ -12,6 +12,6 @@ namespace FileManagerService.Responses
         /// <summary>
         /// описание созданного документа
         /// </summary>
-        public FileAttributes File { get; set; }
+        public FileProperties File { get; set; }
     }
 }

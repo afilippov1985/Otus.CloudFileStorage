@@ -1,51 +1,58 @@
-﻿using MassTransit;
+﻿using Core.Application.Factories;
+using Core.Domain.Messages;
+using Core.Domain.Services.Abstractions;
+using Core.Infrastructure.DataAccess;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using System;
-using System.IO;
-using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ArchiveService
 {
-    internal class UnzipConsumer : IConsumer<Messages.UnzipMessage>
+    internal class UnzipConsumer : IConsumer<UnzipMessage>
     {
         private readonly ILogger<ZipConsumer> _logger;
+        private readonly ApplicationDbContext _db;
+        private readonly Semaphore _semaphore;
 
-        public UnzipConsumer(ILogger<ZipConsumer> logger)
+        public UnzipConsumer(ILogger<ZipConsumer> logger, ApplicationDbContext db)
         {
             _logger = logger;
+            _db = db;
+            _semaphore = new Semaphore(0, 2);
         }
 
-        public async Task Consume(ConsumeContext<Messages.UnzipMessage> context)
+        private IFileStorage GetFileStorage(string userId, string diskName)
         {
-            _logger.LogInformation("UnzipConsumer Run: {0} {1}", context.Message.DiskPath, context.Message.Folder);
+            var userDisk = _db.GetUserDisk(userId, diskName);
+            return FileStorageFactory.GetFileStorage(userDisk);
+        }
 
+        public async Task Consume(ConsumeContext<UnzipMessage> context)
+        {
+            _logger.LogInformation("UnzipConsumer Run: {0} {1} {2}", context.Message.UserId, context.Message.Path, context.Message.Folder);
+
+            // многопоточность
             ThreadPool.QueueUserWorkItem(DoUnzip, context.Message, false);
         }
 
-        public void DoUnzip(Messages.UnzipMessage message)
+        public void DoUnzip(UnzipMessage message)
         {
+            // ограничение количества потоков, которое может выполняться одновременно
+            _semaphore.WaitOne();
+
             try
             {
-                string baseDir = message.DiskPath;
-                var zipFileInfo = new FileInfo(Path.Combine(baseDir, message.Path));
-                string extractTo;
-                if (string.IsNullOrEmpty(message.Folder))
-                {
-                    extractTo = zipFileInfo.DirectoryName;
-                }
-                else
-                {
-                    extractTo = Path.Combine(zipFileInfo.DirectoryName, message.Folder);
-                }
-
-                ZipFile.ExtractToDirectory(zipFileInfo.FullName, extractTo, true);
+                var storage = GetFileStorage(message.UserId, message.Disk);
+                storage.Unzip(message.Path, message.Folder);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "UnzipConsumer Error");
             }
+
+            _semaphore.Release();
         }
     }
 }

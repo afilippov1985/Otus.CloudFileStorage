@@ -1,87 +1,87 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Core.Application.Factories;
+using Core.Domain.Entities;
+using Core.Domain.Services.Abstractions;
+using Core.Infrastructure.DataAccess;
+using Microsoft.AspNetCore.Mvc;
 using PublicAccessService.Models;
-using PublicAccessService.Data;
 using System.Diagnostics;
-// using FileManagerService.Models;
-using System.IO;
 
 namespace PublicAccessService.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly string _storagePath;
         private readonly ILogger<HomeController> _logger;
         private readonly ApplicationDbContext _db;
 
-        public HomeController(IConfiguration configuration, ILogger<HomeController> logger, ApplicationDbContext db)
+        public HomeController(ILogger<HomeController> logger, ApplicationDbContext db)
         {
-            _storagePath = configuration.GetValue<string>("StoragePath");
             _logger = logger;
             _db = db;
         }
 
-        private string GetDiskPath(string userId)
+        private IFileStorage GetFileStorage(string userId, string diskName)
         {
-            var dir = Path.Combine(_storagePath, userId);
-            if (!Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-            }
-            return dir;
-        }
-
-        private static string GetContentPath(string diskPath, string? path)
-        {
-            return path != null ? Path.Combine(diskPath, path.Replace('/', Path.DirectorySeparatorChar)) : diskPath;
+            var userDisk = _db.GetUserDisk(userId, diskName);
+            return FileStorageFactory.GetFileStorage(userDisk);
         }
 
         [HttpGet]
         [Route("/view/{publicId}")]
-        public IActionResult ShareView(string publicId)
+        public async Task<IActionResult> ShareView(string publicId)
         {
             // http://localhost:7001/view/0ffd9b41412b7cb366147de250906f8f
-            var share = _db.Shares.Where(x => x.PublicId == publicId).FirstOrDefault();
+            var share = _db.GetShare(publicId);
             if (share == null)
             {
                 return NotFound();
             }
 
-            string diskPath = GetDiskPath(share.UserId);
-            string contentPath = GetContentPath(diskPath, share.Path);
+            var storage = GetFileStorage(share.UserId, share.Disk);
 
-            var info = new System.IO.FileInfo(contentPath);
-            if (info.Attributes != FileAttributes.Normal)
+            try
             {
+                var (fileProperties, stream) = await storage.ReadFileAsync(share.Path);
+
+                ViewData["Url"] = $"/download/{publicId}";
+                ViewData["Length"] = fileProperties.Size;
+                ViewData["Name"] = fileProperties.Filename;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error when read file {0}", share.Path);
                 return Forbid();
             }
-
-            ViewData["Url"] = $"/download/{publicId}";
-            ViewData["Length"] = info.Length;
-            ViewData["Name"] = info.Name;
-
-            return View(info);
         }
 
         [HttpGet]
         [Route("/download/{publicId}")]
-        public IActionResult Download(string publicId)
+        public async Task<IActionResult> Download(string publicId)
         {
-            var share = _db.Shares.Where(x => x.PublicId == publicId).FirstOrDefault();
+            var share = _db.GetShare(publicId);
             if (share == null)
             {
                 return NotFound();
             }
 
-            string diskPath = GetDiskPath(share.UserId);
-            string contentPath = GetContentPath(diskPath, share.Path);
+            var storage = GetFileStorage(share.UserId, share.Disk);
 
-            var info = new System.IO.FileInfo(contentPath);
-            if (info.Attributes != FileAttributes.Normal)
+            try
             {
+                var (fileProperties, stream) = await storage.ReadFileAsync(share.Path);
+
+                ViewData["Url"] = $"/download/{publicId}";
+                ViewData["Length"] = fileProperties.Size;
+                ViewData["Name"] = fileProperties.Filename;
+
+                return File(stream, "application/octet-stream", fileProperties.Filename);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error when read file {0}", share.Path);
                 return Forbid();
             }
-
-            return PhysicalFile(contentPath, "application/octet-stream", info.Name);
         }
 
         public IActionResult Index()

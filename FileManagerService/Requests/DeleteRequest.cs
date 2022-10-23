@@ -1,4 +1,4 @@
-﻿using FileManagerService.Models;
+﻿using Core.Domain.ValueObjects;
 using System.Collections.Generic;
 
 namespace FileManagerService.Requests

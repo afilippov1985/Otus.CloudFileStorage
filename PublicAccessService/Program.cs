@@ -1,5 +1,5 @@
+using Core.Infrastructure.DataAccess;
 using Microsoft.EntityFrameworkCore;
-using PublicAccessService.Data;
 
 namespace PublicAccessService
 {

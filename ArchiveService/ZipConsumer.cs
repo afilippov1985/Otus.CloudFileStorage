@@ -1,90 +1,58 @@
-﻿using MassTransit;
+﻿using Core.Application.Factories;
+using Core.Domain.Messages;
+using Core.Domain.Services.Abstractions;
+using Core.Infrastructure.DataAccess;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using System;
-using System.IO;
-using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ArchiveService
 {
-    internal class ZipConsumer : IConsumer<Messages.ZipMessage>
+    internal class ZipConsumer : IConsumer<ZipMessage>
     {
         private readonly ILogger<ZipConsumer> _logger;
+        private readonly ApplicationDbContext _db;
+        private readonly Semaphore _semaphore;
 
-        public ZipConsumer(ILogger<ZipConsumer> logger)
+        public ZipConsumer(ILogger<ZipConsumer> logger, ApplicationDbContext db)
         {
             _logger = logger;
+            _db = db;
+            _semaphore = new Semaphore(0, 2);
         }
 
-        public async Task Consume(ConsumeContext<Messages.ZipMessage> context)
+        private IFileStorage GetFileStorage(string userId, string diskName)
         {
-            _logger.LogInformation("ZipConsumer Run: {0} {1}", context.Message.DiskPath, context.Message.Name);
+            var userDisk = _db.GetUserDisk(userId, diskName);
+            return FileStorageFactory.GetFileStorage(userDisk);
+        }
 
+        public async Task Consume(ConsumeContext<ZipMessage> context)
+        {
+            _logger.LogInformation("ZipConsumer Run: {0} {1} {2}", context.Message.UserId, context.Message.Path, context.Message.Name);
+
+            // многопоточность
             ThreadPool.QueueUserWorkItem(DoZip, context.Message, false);
         }
 
-        private void DoZip(Messages.ZipMessage message)
+        private void DoZip(ZipMessage message)
         {
+            // ограничение количества потоков, которое может выполняться одновременно
+            _semaphore.WaitOne();
+
             try
             {
-                string diskPath = message.DiskPath;
-                string? relativePath = message.Path;
-                string zipFilePath;
-                if (string.IsNullOrEmpty(relativePath))
-                {
-                    zipFilePath = Path.Combine(diskPath, message.Name);
-                }
-                else
-                {
-                    zipFilePath = Path.Combine(diskPath, relativePath, message.Name);
-                }
-
-                using var stream = File.Open(zipFilePath, FileMode.CreateNew, FileAccess.Write);
-                using var zip = new ZipArchive(stream, ZipArchiveMode.Create);
-
-                foreach (string dir in message.Directories)
-                {
-                    AddDirRecursively(zip, diskPath, relativePath, dir);
-                }
-
-                foreach (var file in message.Files)
-                {
-                    AddFile(zip, Path.Combine(diskPath, file), relativePath, file);
-                }
+                var storage = GetFileStorage(message.UserId, message.Disk);
+                storage.Zip(message.Path, message.Name, message.Directories, message.Files);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "ZipConsumer Error");
             }
-        }
 
-        private static void AddFile(ZipArchive zip, string realFilePath, string relativePath, string file)
-        {
-            if (!string.IsNullOrEmpty(relativePath) && file.StartsWith(relativePath))
-            {
-                file = file.Substring(relativePath.Length + 1);
-            }
-
-            zip.CreateEntryFromFile(realFilePath, file);
-        }
-
-        private void AddDirRecursively(ZipArchive zip, string diskPath, string relativePath, string dir)
-        {
-            var dirInfo = new DirectoryInfo(Path.Combine(diskPath, dir));
-            foreach (var fsInfo in dirInfo.EnumerateFileSystemInfos())
-            {
-                string relativeFullName = fsInfo.FullName.Substring(diskPath.Length + 1);
-                DirectoryInfo dirInfo1 = fsInfo as DirectoryInfo;
-                if (dirInfo1 != null)
-                {
-                    AddDirRecursively(zip, diskPath, relativePath, relativeFullName);
-                }
-                else
-                {
-                    AddFile(zip, fsInfo.FullName, relativePath, relativeFullName);
-                }
-            }
+            _semaphore.Release();
         }
     }
 }
