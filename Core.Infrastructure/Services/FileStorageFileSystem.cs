@@ -224,7 +224,7 @@ namespace Core.Infrastructure.Services
             }
         }
 
-        public async Task Unzip(string zipFilePath, string? unzipFolder)
+        public async Task UnzipAsync(string zipFilePath, string? unzipFolder)
         {
             var zipFileInfo = new FileInfo(Path.Combine(_diskPath, zipFilePath));
             string extractTo;
@@ -240,7 +240,7 @@ namespace Core.Infrastructure.Services
             ZipFile.ExtractToDirectory(zipFileInfo.FullName, extractTo, true);
         }
 
-        public async Task Zip(string? path, string zipFileName, IEnumerable<string> dirs, IEnumerable<string> files)
+        public async Task ZipAsync(string? path, string zipFileName, IEnumerable<string> dirs, IEnumerable<string> files)
         {
             string? relativePath = path;
             string zipFilePath;

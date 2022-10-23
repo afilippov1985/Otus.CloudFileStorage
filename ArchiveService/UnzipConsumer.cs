@@ -14,13 +14,11 @@ namespace ArchiveService
     {
         private readonly ILogger<ZipConsumer> _logger;
         private readonly ApplicationDbContext _db;
-        private readonly Semaphore _semaphore;
 
         public UnzipConsumer(ILogger<ZipConsumer> logger, ApplicationDbContext db)
         {
             _logger = logger;
             _db = db;
-            _semaphore = new Semaphore(0, 2);
         }
 
         private IFileStorage GetFileStorage(string userId, string diskName)
@@ -39,20 +37,15 @@ namespace ArchiveService
 
         public void DoUnzip(UnzipMessage message)
         {
-            // ограничение количества потоков, которое может выполняться одновременно
-            _semaphore.WaitOne();
-
             try
             {
                 var storage = GetFileStorage(message.UserId, message.Disk);
-                storage.Unzip(message.Path, message.Folder);
+                storage.UnzipAsync(message.Path, message.Folder).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "UnzipConsumer Error");
             }
-
-            _semaphore.Release();
         }
     }
 }

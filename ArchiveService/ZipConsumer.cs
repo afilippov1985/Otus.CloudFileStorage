@@ -14,13 +14,11 @@ namespace ArchiveService
     {
         private readonly ILogger<ZipConsumer> _logger;
         private readonly ApplicationDbContext _db;
-        private readonly Semaphore _semaphore;
 
         public ZipConsumer(ILogger<ZipConsumer> logger, ApplicationDbContext db)
         {
             _logger = logger;
             _db = db;
-            _semaphore = new Semaphore(0, 2);
         }
 
         private IFileStorage GetFileStorage(string userId, string diskName)
@@ -37,22 +35,17 @@ namespace ArchiveService
             ThreadPool.QueueUserWorkItem(DoZip, context.Message, false);
         }
 
-        private void DoZip(ZipMessage message)
+        protected virtual void DoZip(ZipMessage message)
         {
-            // ограничение количества потоков, которое может выполняться одновременно
-            _semaphore.WaitOne();
-
             try
             {
                 var storage = GetFileStorage(message.UserId, message.Disk);
-                storage.Zip(message.Path, message.Name, message.Directories, message.Files);
+                storage.ZipAsync(message.Path, message.Name, message.Directories, message.Files).GetAwaiter().GetResult(); ;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "ZipConsumer Error");
             }
-
-            _semaphore.Release();
         }
     }
 }

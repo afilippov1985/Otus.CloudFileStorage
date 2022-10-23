@@ -53,7 +53,7 @@ namespace Core.Infrastructure.Services
             throw new NotImplementedException();
         }
 
-        public Task Unzip(string zipFilePath, string? unzipFolder)
+        public Task UnzipAsync(string zipFilePath, string? unzipFolder)
         {
             throw new NotImplementedException();
         }
@@ -63,7 +63,7 @@ namespace Core.Infrastructure.Services
             throw new NotImplementedException();
         }
 
-        public Task Zip(string? path, string zipFileName, IEnumerable<string> dirs, IEnumerable<string> files)
+        public Task ZipAsync(string? path, string zipFileName, IEnumerable<string> dirs, IEnumerable<string> files)
         {
             throw new NotImplementedException();
         }

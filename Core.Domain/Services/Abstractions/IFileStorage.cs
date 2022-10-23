@@ -15,7 +15,7 @@ namespace Core.Domain.Services.Abstractions
         public Task<bool> MoveToDirectoryAsync(string fileOrDirPath, string dirPath);
         public Task<bool> CopyToDirectoryAsync(string fileOrDirPath, string dirPath);
         public Task<bool> DeleteAsync(string fileOrDirPath);
-        public Task Unzip(string zipFilePath, string? unzipFolder);
-        public Task Zip(string? path, string zipFileName, IEnumerable<string> dirs, IEnumerable<string> files);
+        public Task UnzipAsync(string zipFilePath, string? unzipFolder);
+        public Task ZipAsync(string? path, string zipFileName, IEnumerable<string> dirs, IEnumerable<string> files);
     }
 }
