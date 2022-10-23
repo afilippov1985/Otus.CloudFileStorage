@@ -36,7 +36,7 @@ namespace ArchiveService
                             cfg.ConfigureEndpoints(context);
                         });
 
-                        x.AddConsumer<ZipConsumer>();
+                        x.AddConsumer<ZipConsumerWithThreadLimit>();
                         x.AddConsumer<UnzipConsumer>();
                     });
 
