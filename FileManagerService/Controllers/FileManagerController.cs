@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace FileManagerService.Controllers
 {
@@ -23,14 +24,14 @@ namespace FileManagerService.Controllers
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly Dictionary<string, string> _mimeMap;
         private readonly ApplicationDbContext _db;
+        private readonly ILogger<FileManagerController> _logger;
 
-        public FileManagerController(IConfiguration configuration, IPublishEndpoint publishEndpoint, ApplicationDbContext db)
+        public FileManagerController(IConfiguration configuration, IPublishEndpoint publishEndpoint, ApplicationDbContext db, ILogger<FileManagerController> logger)
         {
-            _db = db;
-
             _publicAccessServiceUrl = configuration.GetValue<string>("PublicAccessServiceUrl");
-
             _publishEndpoint = publishEndpoint;
+            _db = db;
+            _logger = logger;
 
             _mimeMap = new Dictionary<string, string>() {
                 { ".bmp", "image/x-ms-bmp" },
@@ -62,7 +63,10 @@ namespace FileManagerService.Controllers
 
         private IFileStorage GetFileStorage(string diskName)
         {
-            return FileStorageFactory.GetFileStorage(GetAuthenticatedUserDisk(diskName));
+            IFileStorage storage = FileStorageFactory.GetFileStorage(GetAuthenticatedUserDisk(diskName));
+            // используем паттерн Decorator
+            IFileStorage loggingStorage = new LoggingFileStorage(storage, _logger);
+            return loggingStorage;
         }
 
         [HttpGet]
