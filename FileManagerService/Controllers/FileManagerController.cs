@@ -8,12 +8,13 @@ using FileManagerService.Responses;
 using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace FileManagerService.Controllers
 {
@@ -73,37 +74,31 @@ namespace FileManagerService.Controllers
         [ActionName("initialize")]
         public IActionResult InitializeManager()
         {
-            var shareList = _db.Shares
-                .Where(x => x.UserId == GetAuthenticatedUserId())
-                .Select(x => new AddShareResponse() { Disk = x.Disk, Path = x.Path, PublicId = x.PublicId })
-                .ToList();
+            // паттерн Builder
+            var builder = new ConfigResultBuilder();
+            builder.SetWindowsConfig(WindowsConfig.OneManager)
+                .SetLang("ru")
+                .SetShowHiddenFiles(true)
+                .SetShareBaseUrl(_publicAccessServiceUrl + "/view/");
+
+            string userId = GetAuthenticatedUserId();
+
+            _db.UserDisks
+                .AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .ToList()
+                .ForEach(userDisk => builder.AddDisk(userDisk.Disk, userDisk.Driver.ToString()));
+
+            _db.Shares
+                .AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .ToList()
+                .ForEach(share => builder.AddShare(share.Disk, share.Path, share.PublicId));
 
             return Ok(new InitializeResponse()
             {
                 Result = new(Status.Success, ""),
-                Config = new()
-                {
-                    Acl = false,
-                    HiddenFiles = true,
-                    Disks = new()
-                    {
-                        { "public",
-                            new()
-                            {
-                                { "driver", "local" }
-                            }
-                        }
-                    },
-                    Lang = "ru",
-                    LeftDisk = "",
-                    RightDisk = "",
-                    LeftPath = "",
-                    RightPath = "",
-                    WindowsConfig = (int)WindowsConfig.OneManager,
-
-                    ShareBaseUrl = _publicAccessServiceUrl + "/view/",
-                    ShareList = shareList,
-                }
+                Config = builder.Build(),
             });
         }
 
