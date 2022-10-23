@@ -1,11 +1,7 @@
 ﻿namespace Core.Domain.Messages
 {
-    public class UnzipMessage
+    public class UnzipMessage : AbstractMessage
     {
-        public string UserId { get; set; }
-
-        public string Disk { get; set; }
-
         // путь к архиву, который нужно распаковать
         public string Path { get; set; }
 
