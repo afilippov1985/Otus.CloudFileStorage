@@ -144,6 +144,12 @@ namespace Core.Infrastructure.Services
 
         public async Task<bool> MoveToDirectoryAsync(string fileOrDirPath, string dirPath)
         {
+            var dirInfo = new DirectoryInfo(Path.Combine(_diskPath, fileOrDirPath));
+
+            string contentPath = GetContentPath(dirPath);
+            dirInfo.MoveTo(Path.Combine(contentPath, dirInfo.Name));
+
+            /*
             string src = Path.Combine(_diskPath, fileOrDirPath);
             string dst = Path.Combine(_diskPath, dirPath);
 
@@ -154,6 +160,7 @@ namespace Core.Infrastructure.Services
             }
 
             Directory.Move(src, Path.Combine(dst, di.Name));
+            */
 
             return true;
         }
@@ -164,19 +171,17 @@ namespace Core.Infrastructure.Services
             string src = Path.Combine(_diskPath, fileOrDirPath);
             string dst = Path.Combine(_diskPath, dirPath);
 
-            var di = new DirectoryInfo(src);
-            if (!di.Exists)
-            {
-                return false;
-            }
+            var dirInfo = new DirectoryInfo(Path.Combine(_diskPath, fileOrDirPath));
 
-            if (di.Attributes == FileAttributes.Directory)
+            string contentPath = GetContentPath(dirPath);
+
+            if (dirInfo.Attributes.HasFlag(FileAttributes.Directory))
             {
-                CopyDirectory(src, dst, overwrite);
+                CopyDirectory(src, Path.Combine(contentPath, dirInfo.Name), overwrite);
             }
             else
             {
-                File.Copy(src, Path.Combine(dst, di.Name), overwrite);
+                File.Copy(src, Path.Combine(dst, dirInfo.Name), overwrite);
             }
 
             return true;
