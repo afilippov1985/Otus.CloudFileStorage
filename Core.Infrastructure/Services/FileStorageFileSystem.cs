@@ -121,6 +121,8 @@ namespace Core.Infrastructure.Services
                 await stream.CopyToAsync(stream1);
             }
 
+            fileInfo = new FileInfo(filePath);
+
             return (FileProperties)ConvertToProperties(fileInfo);
         }
 

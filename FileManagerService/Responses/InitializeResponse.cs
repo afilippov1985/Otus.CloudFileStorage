@@ -166,7 +166,7 @@ namespace FileManagerService.Responses
         public ConfigResultBuilder AddDisk(string diskName, string diskDriver)
         {
             _disks.Add(diskName, new() {
-                { "driver", diskDriver }
+                { "driver", "local" }
             });
 
             return this;
