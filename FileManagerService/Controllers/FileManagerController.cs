@@ -292,8 +292,12 @@ namespace FileManagerService.Controllers
         {
             try
             {
+                var userDisk = GetAuthenticatedUserDisk(request.Disk);
+
                 await _publishEndpoint.Publish<Core.Domain.Messages.ZipMessage>(new
                 {
+                    StorageDriver = userDisk.Driver,
+                    StorageOptions = userDisk.StorageOptions,
                     UserId = GetAuthenticatedUserId(),
                     Disk = request.Disk,
                     Path = request.Path,
@@ -318,8 +322,12 @@ namespace FileManagerService.Controllers
         {
             try
             {
+                var userDisk = GetAuthenticatedUserDisk(request.Disk);
+
                 await _publishEndpoint.Publish<Core.Domain.Messages.UnzipMessage>(new
                 {
+                    StorageDriver = userDisk.Driver,
+                    StorageOptions = userDisk.StorageOptions,
                     UserId = GetAuthenticatedUserId(),
                     Disk = request.Disk,
                     Path = request.Path,

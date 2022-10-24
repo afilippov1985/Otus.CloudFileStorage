@@ -27,6 +27,11 @@ namespace ArchiveService
             return FileStorageFactory.GetFileStorage(userDisk);
         }
 
+        private IFileStorage GetFileStorage2(FileStorageDriver storageDriver, string storageOptions)
+        {
+            return FileStorageFactory.GetFileStorage(storageDriver, storageOptions);
+        }
+
         public async Task Consume(ConsumeContext<UnzipMessage> context)
         {
             _logger.LogInformation("UnzipConsumer Run: {0} {1} {2}", context.Message.UserId, context.Message.Path, context.Message.Folder);
@@ -39,7 +44,8 @@ namespace ArchiveService
         {
             try
             {
-                var storage = GetFileStorage(message.UserId, message.Disk);
+                // var storage = GetFileStorage(message.UserId, message.Disk);
+                var storage = GetFileStorage2(message.StorageDriver, message.StorageOptions);
                 storage.UnzipAsync(message.Path, message.Folder).GetAwaiter().GetResult();
             }
             catch (Exception ex)
